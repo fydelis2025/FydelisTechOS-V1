@@ -96,7 +96,7 @@ jobs:
 
       - name: 📂 Copiar arquivos para a ISO
         run: |
-          # Cria todas as pastas de destino
+          # 1. Criar todas as pastas de destino essenciais no chroot
           mkdir -p config/includes.chroot/usr/local/bin/
           mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
           mkdir -p config/includes.chroot/boot/grub/
@@ -106,34 +106,45 @@ jobs:
           mkdir -p config/includes.chroot/opt/fydel/telas/
           mkdir -p config/includes.chroot/opt/fydel/iso/
           
-          # Terminal
-          cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/ 2>/dev/null || true
+          # 2. Copiar os fontes do Terminal de forma segura se a pasta existir
+          if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
+            cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+          fi
           
-          # Scripts do sistema
-          cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ 2>/dev/null || true
-          cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ 2>/dev/null || true
-          cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ 2>/dev/null || true
+          # 3. Copiar scripts individuais verificando arquivo por arquivo
+          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "⚠️ fydel_ai.py não encontrado"
+          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "⚠️ gerenciador_pacotes.sh não encontrado"
+          [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "⚠️ usuarios_permissoes.sh não encontrado"
+          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "⚠️ fydel-install.sh não encontrado"
           
-          # GRUB
-          cp -r src/sistema/grub/* config/includes.chroot/boot/grub/ 2>/dev/null || true
+          # 4. Copiar subpastas opcionais validando se possuem conteúdo interno (evita erro 123)
+          if [ -d "src/sistema/grub" ] && [ "$(ls -A src/sistema/grub 2>/dev/null)" ]; then
+            cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
+          fi
           
-          # Ícones
-          cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/ 2>/dev/null || true
+          if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
+            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
+          fi
           
-          # Serviços systemd
-          cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/ 2>/dev/null || true
+          if [ -d "src/sistema/servicos_systemd" ] && [ "$(ls -A src/sistema/servicos_systemd 2>/dev/null)" ]; then
+            cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
+          fi
           
-          # Instalador
-          cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ 2>/dev/null || true
+          if [ -d "src/telas" ] && [ "$(ls -A src/telas 2>/dev/null)" ]; then
+            cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
+          fi
           
-          # Telas
-          cp src/telas/* config/includes.chroot/opt/fydel/telas/ 2>/dev/null || true
+          if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
+            cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
+          fi
           
-          # Documentação
-          cp src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/ 2>/dev/null || true
+          if [ -d "src/iso" ] && [ "$(ls -A src/iso 2>/dev/null)" ]; then
+            cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
+          fi
           
-          # Scripts ISO
-          cp src/iso/* config/includes.chroot/opt/fydel/iso/ 2>/dev/null || true
+          # 5. Aplicar permissões de execução nos scripts copiados
+          chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
+          chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
       - name: 🔧 Criar Hooks de pós-instalação (Compilar e Ativar Serviços)
         run: |
