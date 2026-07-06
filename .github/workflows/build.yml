@@ -17,18 +17,49 @@ jobs:
       MIRROR: http://deb.debian.org/debian/
 
     steps:
+      # 1. Baixa os arquivos do seu repositório
       - name: 📥 Clonar repositório
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 📂 Verificar estrutura de arquivos
+      # 2. GARANTE que a pasta e o arquivo de pacotes existam
+      - name: 📂 Criar pasta e arquivo de pacotes (se não existir)
         run: |
-          echo "Conteúdo da raiz:"
-          ls -la
-          echo "Conteúdo da pasta pacotes:"
-          ls -la pacotes/ || echo "Pasta pacotes não encontrada"
+          mkdir -p pacotes
+          cat > pacotes/lista_completa.txt << 'EOF'
+# Sistema base Debian
+base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring
 
+# Ferramentas básicas
+nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
+
+# Escritório e Multimídia
+libreoffice libreoffice-l10n-pt-br evince gpicview vlc vlc-l10n
+
+# Áudio, Microfone e Som
+pulseaudio pulseaudio-utils alsa-utils alsa-tools alsa-base pavucontrol pavucontrol-qt volumeicon-alsa
+
+# Bluetooth
+bluetooth bluez bluez-tools blueman
+
+# Rede e Internet
+firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
+
+# Discos e armazenamento
+gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
+
+# Segurança e Pentest
+wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto metasploit-framework binwalk foremost testdisk chkrootkit rkhunter
+
+# Sistema e configuração
+gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
+
+# Dependências para a FydelisTech-AI
+python3 python3-pip python3-requests
+EOF
+
+      # 3. Instala as ferramentas necessárias para a construção
       - name: 🛠️ Instalar dependências de build
         run: |
           sudo apt update
@@ -36,6 +67,7 @@ jobs:
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
             debian-archive-keyring debian-keyring build-essential nasm gcc g++ make libutil-dev
 
+      # 4. Configura o sistema base Debian
       - name: ⚙️ Configurar Live Build para Debian Bookworm
         run: |
           rm -rf auto config || true
@@ -51,31 +83,29 @@ jobs:
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid
 
-      - name: 📋 Adicionar lista de pacotes (caminho corrigido)
+      # 5. Copia a lista de pacotes para o local correto
+      - name: 📋 Adicionar lista de pacotes
         run: |
           mkdir -p config/package-lists/
-          # Verifica se existe e copia
-          if [ -f ./pacotes/lista_completa.txt ]; then
-            cp ./pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
-          else
-            echo "ERRO: Arquivo lista_completa.txt não encontrado! Verifique a estrutura do repositório."
-            exit 1
-          fi
+          cp ./pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
-      - name: 📂 Incluir arquivos personalizados no sistema
+      # 6. Copia todos os arquivos do seu projeto para dentro da ISO
+      - name: 📂 Incluir arquivos do sistema
         run: |
           mkdir -p config/includes.chroot/opt/fydel/
           cp -r ./src ./instalador ./documentacao ./pacotes config/includes.chroot/opt/fydel/ || true
 
+      # 7. Constrói a imagem ISO
       - name: 🚀 Construir a ISO
         run: sudo lb build --verbose
 
+      # 8. Renomeia e salva o arquivo final
       - name: 📦 Renomear ISO final
         run: |
           if [ -f binary.iso ]; then
             mv binary.iso FydelisTechOS-V1.0.iso
           else
-            echo "❌ ISO não foi gerada — verifique logs acima"
+            echo "❌ ISO não foi gerada — verifique os logs acima"
             exit 1
           fi
 
