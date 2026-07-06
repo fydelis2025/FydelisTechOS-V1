@@ -13,7 +13,7 @@ groupadd -f fydel-users
 
 # Usuário ADMIN
 if ! id -u admin &>/dev/null; then
-    useradd -m -g fydel-admin -G sudo,adm,netdev,storage,video \
+    useradd -m -g fydel-admin -G sudo,adm,netdev,storage,video,audio,bluetooth \
         -c "Administrador Fydelistechos" -s /usr/local/bin/fydelterm \
         -p "$PASS_ADMIN" admin
     echo "✅ Usuário admin criado"
@@ -21,7 +21,7 @@ fi
 
 # Usuário COMUM
 if ! id -u usuario &>/dev/null; then
-    useradd -m -g fydel-users -G users,audio,video \
+    useradd -m -g fydel-users -G users,audio,video,bluetooth \
         -c "Usuário Padrão Fydelistechos" -s /usr/local/bin/fydelterm \
         -p "$PASS_USUARIO" usuario
     echo "✅ Usuário usuario criado"
