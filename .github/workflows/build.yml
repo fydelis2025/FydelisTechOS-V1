@@ -25,15 +25,15 @@ jobs:
           mkdir -p /tmp/fydel-iso-build
           cd /tmp/fydel-iso-build
           
-          # Inicializar o live-build para Debian 12 Bookworm de 64 bits
+          # Inicializar o live-build para Debian 12 Bookworm de 64 bits (Correção aqui!)
           lb config \
             --distribution bookworm \
             --architectures amd64 \
             --binary-images iso-hybrid \
-            --iso-application "Fydelistechos OS" \
+            --iso-application "FydelisTechos OS" \
             --iso-publisher "Fydelistechos" \
             --iso-volume "FYDEL_OS_1_0" \
-            --bootloaders grub-pc \
+            --bootloader grub-pc \
             --archive-areas "main contrib non-free non-free-firmware"
 
       - name: 📦 Mapeando pacotes (lista_completa.txt)
