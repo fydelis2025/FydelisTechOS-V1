@@ -14,13 +14,17 @@ jobs:
       - name: 🚚 Baixando o código fonte do repositório
         uses: actions/checkout@v4
 
-      - name: 🏗️ Preparando a árvore do Live-Build
+      - name: 🏗️ Preparando Ambiente e Árvore do Live-Build
         run: |
-          # Criar o diretório de compilação isolado
+          # 1. Instalar as ferramentas diretamente na sessão atual
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap xorriso syslinux-utils rsync build-essential nasm g++ gcc make debian-archive-keyring
+
+          # 2. Criar o diretório de compilação isolado e entrar nele
           mkdir -p /tmp/fydel-iso-build
           cd /tmp/fydel-iso-build
           
-          # Inicializar o live-build apenas com os parâmetros essenciais e aceitos universalmente
+          # 3. Executar o lb config na mesma janela de terminal
           lb config \
             --distribution bookworm \
             --architectures amd64 \
@@ -38,14 +42,10 @@ jobs:
             --parent-mirror-binary "http://deb.debian.org/debian/" \
             --security false
 
-          # Garantir a criação da pasta de repositórios customizados
+          # 4. Garantir a criação da pasta de repositórios customizados sem herança do Ubuntu
           mkdir -p config/archives
-          
-          # Forçar o uso do repositório de Segurança oficial do Debian 12 Bookworm
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" > config/archives/security.list.chroot
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" > config/archives/security.list.binary
-          
-          # Forçar o uso do repositório de Atualizações oficial do Debian 12 Bookworm
           echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" > config/archives/updates.list.chroot
           echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" > config/archives/updates.list.binary
 
