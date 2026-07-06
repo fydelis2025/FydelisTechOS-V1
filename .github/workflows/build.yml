@@ -17,17 +17,41 @@ jobs:
       MIRROR: http://deb.debian.org/debian/
 
     steps:
-      # 1. Baixa os arquivos do seu repositório
       - name: 📥 Clonar repositório
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. GARANTE que a pasta e o arquivo de pacotes existam
-      - name: 📂 Criar pasta e arquivo de pacotes (se não existir)
+      - name: 🛠️ Instalar dependências de build
         run: |
-          mkdir -p pacotes
-          cat > pacotes/lista_completa.txt << 'EOF'
+          sudo apt update
+          sudo apt install -y --no-install-recommends \
+            live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
+            debian-archive-keyring debian-keyring build-essential nasm gcc g++ make libutil-dev
+
+      - name: ⚙️ Configurar Live Build para Debian Bookworm
+        run: |
+          rm -rf auto config || true
+          lb config \
+            --distribution "${DEBIAN_DIST}" \
+            --architectures "${ARCH}" \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --mirror-bootstrap "${MIRROR}" \
+            --mirror-chroot "${MIRROR}" \
+            --mirror-binary "${MIRROR}" \
+            --iso-application "FydelisTechOS V1" \
+            --iso-publisher "FydelisTech" \
+            --iso-volume "FYDELIS_V1" \
+            --binary-images iso-hybrid
+
+      - name: 📋 Preparar lista de pacotes
+        run: |
+          mkdir -p config/package-lists/
+          if [ -f ./src/pacotes/lista_completa.txt ]; then
+            cp ./src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
+          else
+            mkdir -p ./src/pacotes/
+            cat > ./src/pacotes/lista_completa.txt << 'EOF'
 # Sistema base Debian
 base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring
 
@@ -58,48 +82,17 @@ gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
 # Dependências para a FydelisTech-AI
 python3 python3-pip python3-requests
 EOF
+            cp ./src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
+          fi
 
-      # 3. Instala as ferramentas necessárias para a construção
-      - name: 🛠️ Instalar dependências de build
-        run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends \
-            live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-            debian-archive-keyring debian-keyring build-essential nasm gcc g++ make libutil-dev
-
-      # 4. Configura o sistema base Debian
-      - name: ⚙️ Configurar Live Build para Debian Bookworm
-        run: |
-          rm -rf auto config || true
-          lb config \
-            --distribution "${DEBIAN_DIST}" \
-            --architectures "${ARCH}" \
-            --archive-areas "main contrib non-free non-free-firmware" \
-            --mirror-bootstrap "${MIRROR}" \
-            --mirror-chroot "${MIRROR}" \
-            --mirror-binary "${MIRROR}" \
-            --iso-application "FydelisTechOS V1" \
-            --iso-publisher "FydelisTech" \
-            --iso-volume "FYDELIS_V1" \
-            --binary-images iso-hybrid
-
-      # 5. Copia a lista de pacotes para o local correto
-      - name: 📋 Adicionar lista de pacotes
-        run: |
-          mkdir -p config/package-lists/
-          cp ./pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
-
-      # 6. Copia todos os arquivos do seu projeto para dentro da ISO
       - name: 📂 Incluir arquivos do sistema
         run: |
           mkdir -p config/includes.chroot/opt/fydel/
-          cp -r ./src ./instalador ./documentacao ./pacotes config/includes.chroot/opt/fydel/ || true
+          cp -r ./src/* config/includes.chroot/opt/fydel/ || true
 
-      # 7. Constrói a imagem ISO
       - name: 🚀 Construir a ISO
         run: sudo lb build --verbose
 
-      # 8. Renomeia e salva o arquivo final
       - name: 📦 Renomear ISO final
         run: |
           if [ -f binary.iso ]; then
