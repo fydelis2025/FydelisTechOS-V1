@@ -35,38 +35,40 @@ jobs:
       - name: 🔧 Corrigir lista de pacotes para Bookworm
         run: |
           cat > src/pacotes/lista_completa.txt << 'EOF'
-          # Sistema base Debian
+          # Sistema base
           base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
           
           # Ferramentas básicas
           nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
           
           # Escritório e Multimídia
-          libreoffice libreoffice-l10n-pt-br evince gpicview
-          vlc
+          libreoffice libreoffice-l10n-pt-br evince gpicview vlc
           
-          # Áudio, Microfone e Som
+          # Áudio
           pipewire pipewire-pulse wireplumber alsa-utils pavucontrol
           
           # Bluetooth
           bluetooth bluez bluez-tools blueman
           
-          # Rede e Internet
+          # Rede
           firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
           
-          # Discos e armazenamento
+          # Discos
           gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
           
-          # Segurança e Pentest (pacotes disponíveis no Debian)
+          # Segurança
           wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
           
-          # Sistema e configuração
+          # Sistema
           gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
           
           # Python
           python3 python3-pip python3-requests
+          
+          # Dependências para compilar terminal C/ASM
+          build-essential nasm gcc g++ make libutil-linux-dev
           EOF
-          echo "=== Lista de pacotes corrigida ==="
+          echo "=== Lista de pacotes final ==="
           cat src/pacotes/lista_completa.txt
 
       - name: ⚙️ Configurar Live Build
@@ -93,11 +95,83 @@ jobs:
           mkdir -p config/package-lists/
           cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
-      - name: 📂 Incluir arquivos do sistema
+      - name: 📂 Distribuir arquivos nos locais corretos do sistema
         run: |
-          mkdir -p config/includes.chroot/opt/fydel/
-          cp -r src/* config/includes.chroot/opt/fydel/
-          rm -rf config/includes.chroot/opt/fydel/pacotes
+          # ==========================================
+          # 1. TERMINAL FET (C/ASM) -> /usr/local/bin/
+          # ==========================================
+          mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
+          cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+          
+          # Script de compilação do terminal
+          cat > config/includes.chroot/usr/local/bin/compilar-terminal << 'COMPILE'
+          #!/bin/bash
+          cd /usr/local/src/fydel-terminal
+          make clean && make
+          cp fydel_term /usr/local/bin/
+          COMPILE
+          chmod +x config/includes.chroot/usr/local/bin/compilar-terminal
+
+          # ==========================================
+          # 2. SISTEMA (scripts, AI, grub, ícones, systemd)
+          # ==========================================
+          
+          # Scripts principais do sistema
+          mkdir -p config/includes.chroot/usr/local/bin/
+          cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/
+          chmod +x config/includes.chroot/usr/local/bin/fydel_ai.py
+          
+          cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/
+          chmod +x config/includes.chroot/usr/local/bin/gerenciador_pacotes.sh
+          
+          cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/
+          chmod +x config/includes.chroot/usr/local/bin/usuarios_permissoes.sh
+          
+          # Configuração GRUB personalizada
+          mkdir -p config/includes.chroot/boot/grub/
+          if [ -d src/sistema/grub ]; then
+            cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
+          fi
+          
+          # Ícones do sistema
+          mkdir -p config/includes.chroot/usr/share/icons/fydel/
+          if [ -d src/sistema/icones ]; then
+            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
+          fi
+          
+          # Serviços systemd personalizados
+          mkdir -p config/includes.chroot/etc/systemd/system/
+          if [ -d src/sistema/servicos_systemd ]; then
+            cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
+          fi
+
+          # ==========================================
+          # 3. INSTALADOR
+          # ==========================================
+          mkdir -p config/includes.chroot/usr/local/bin/
+          cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/
+          chmod +x config/includes.chroot/usr/local/bin/fydel-install.sh
+
+          # ==========================================
+          # 4. TELAS (mensagens de boas-vindas, etc)
+          # ==========================================
+          mkdir -p config/includes.chroot/opt/fydel/telas/
+          cp src/telas/* config/includes.chroot/opt/fydel/telas/
+
+          # ==========================================
+          # 5. DOCUMENTAÇÃO
+          # ==========================================
+          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
+          cp src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
+
+          # ==========================================
+          # 6. SCRIPTS DE GERAÇÃO ISO (apenas referência)
+          # ==========================================
+          mkdir -p config/includes.chroot/opt/fydel/iso/
+          cp src/iso/scripts_geracao_iso.sh config/includes.chroot/opt/fydel/iso/
+
+          echo "=== Estrutura final em config/includes.chroot/ ==="
+          find config/includes.chroot/ -type f | sort
 
       - name: 🚀 Construir a ISO
         run: lb build --verbose 2>&1
