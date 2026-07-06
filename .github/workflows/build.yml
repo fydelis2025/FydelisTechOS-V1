@@ -9,7 +9,11 @@ jobs:
   build-iso:
     name: Gerar Imagem ISO
     runs-on: ubuntu-24.04
+    container:
+      image: debian:bookworm-slim
+      options: --privileged
     env:
+      DEBIAN_FRONTEND: noninteractive
       DEBIAN_DIST: bookworm
       ARCH: amd64
       MIRROR: http://deb.debian.org/debian/
@@ -21,12 +25,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🛠️ Instalar dependências de build
+      - name: 🛠️ Configurar Debian no container e instalar dependências
         run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends \
+          # Garante que o container Debian está atualizado
+          apt-get update
+          apt-get install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-            debian-archive-keyring debian-keyring
+            debian-archive-keyring debian-keyring curl sudo
 
       - name: 🔧 Sanitizar lista de pacotes
         run: |
@@ -35,27 +40,9 @@ jobs:
           echo "=== Lista de pacotes sanitizada ==="
           cat src/pacotes/lista_completa.txt
 
-      - name: ⚙️ Configurar Live Build (modo Debian puro)
+      - name: ⚙️ Configurar Live Build
         run: |
           rm -rf auto config || true
-
-          # Cria diretório de hooks para bootstrap
-          mkdir -p config/hooks/normal/
-
-          # Hook para remover ubuntu-keyring e garantir chaves Debian
-          cat > config/hooks/normal/9999-force-debian-only.hook.chroot << 'HOOK'
-          #!/bin/bash
-          set -e
-          # Remove qualquer referência ao ubuntu-keyring se estiver no sistema
-          if dpkg -l ubuntu-keyring 2>/dev/null | grep -q ubuntu-keyring; then
-            apt-get remove --purge -y ubuntu-keyring 2>/dev/null || true
-          fi
-          # Garante que as chaves do Debian estão instaladas
-          apt-get install -y --no-install-recommends debian-archive-keyring debian-keyring 2>/dev/null || true
-          HOOK
-          chmod +x config/hooks/normal/9999-force-debian-only.hook.chroot
-
-          # Configura o live-build forçando Debian puro
           lb config \
             --distribution "${DEBIAN_DIST}" \
             --architectures "${ARCH}" \
@@ -70,19 +57,7 @@ jobs:
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid \
             --cache-packages false \
-            --apt-source-archives false \
-            --apt-indices false \
-            --apt-recommends false \
-            --bootappend-live "boot=live components quiet splash"
-
-      - name: 📋 Forçar sources.list do Debian (bootstrap)
-        run: |
-          mkdir -p config/archives/
-          cat > config/archives/fydelis-repos.list.chroot << 'EOF'
-          deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
-          deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
-          deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
-          EOF
+            --apt-source-archives false
 
       - name: 📋 Copiar lista de pacotes
         run: |
@@ -96,7 +71,7 @@ jobs:
           rm -rf config/includes.chroot/opt/fydel/pacotes
 
       - name: 🚀 Construir a ISO
-        run: sudo lb build --verbose 2>&1
+        run: lb build --verbose 2>&1
 
       - name: 📦 Renomear ISO final
         run: |
