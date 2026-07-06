@@ -17,7 +17,7 @@ jobs:
       - name: ⚙️ Instalando ferramentas de compilação e Live-Build
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap xorriso syslinux-utils rsync build-essential nasm g++ gcc make 
+          sudo apt-get install -y live-build debootstrap xorriso syslinux-utils rsync build-essential nasm g++ gcc make debian-archive-keyring
 
       - name: 🏗️ Preparando a árvore do Live-Build
         run: |
@@ -25,7 +25,7 @@ jobs:
           mkdir -p /tmp/fydel-iso-build
           cd /tmp/fydel-iso-build
           
-          # Inicializar o live-build para Debian 12 Bookworm de 64 bits (Correção aqui!)
+          # Inicializar o live-build forçando os espelhos oficiais do Debian 12
           lb config \
             --distribution bookworm \
             --architectures amd64 \
@@ -34,7 +34,13 @@ jobs:
             --iso-publisher "Fydelistechos" \
             --iso-volume "FYDEL_OS_1_0" \
             --bootloader grub-pc \
-            --archive-areas "main contrib non-free non-free-firmware"
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --mirror-bootstrap "http://deb.debian.org/debian/" \
+            --mirror-chroot "http://deb.debian.org/debian/" \
+            --mirror-binary "http://deb.debian.org/debian/" \
+            --parent-mirror-bootstrap "http://deb.debian.org/debian/" \
+            --parent-mirror-chroot "http://deb.debian.org/debian/" \
+            --parent-mirror-binary "http://deb.debian.org/debian/"
 
       - name: 📦 Mapeando pacotes (lista_completa.txt)
         run: |
