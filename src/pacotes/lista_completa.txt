@@ -1,5 +1,5 @@
 # Sistema base Debian
-base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux
+base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring
 
 # Ferramentas básicas
 nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
