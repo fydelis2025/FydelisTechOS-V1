@@ -283,10 +283,16 @@ void executar_opcao(int opcao) {
             pty_loop(fd_mestre);
             return;
         case 9:
-            std::cout << COR_VERDE << "\n🤖 Conectando ao núcleo FydelisTech-AI...\n" << COR_RESET;
+           std::cout << COR_VERDE << "\n🤖 Conectando ao núcleo FydelisTech-AI...\n" << COR_RESET;
             modo_texto(); 
-            system("python3 /usr/local/bin/fydel-ai"); 
-            return; 
+            
+            // Executa o link simbólico diretamente instalado no sistema
+            system("/usr/local/bin/fydel-ai"); 
+            
+            // Garante que o terminal pause ao sair da IA para não quebrar o layout do menu
+            std::cout << "\n\n  " << COR_CINZA << "Sessão IA encerrada. Pressione ENTER para retornar ao menu..." << COR_RESET;
+            std::cin.ignore(10000, '\n'); std::cin.get();
+            return;
         case 0:
             std::cout << COR_VERDE << "\n👋 Encerrando sessão... Até logo!\n" << COR_RESET;
             std::this_thread::sleep_for(std::chrono::seconds(1));
