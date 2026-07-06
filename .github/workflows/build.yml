@@ -22,12 +22,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 📂 Verificar estrutura de arquivos
+        run: |
+          echo "Conteúdo da raiz:"
+          ls -la
+          echo "Conteúdo da pasta pacotes:"
+          ls -la pacotes/ || echo "Pasta pacotes não encontrada"
+
       - name: 🛠️ Instalar dependências de build
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-            debian-archive-keyring debian-keyring build-essential nasm gcc g++ make
+            debian-archive-keyring debian-keyring build-essential nasm gcc g++ make libutil-dev
 
       - name: ⚙️ Configurar Live Build para Debian Bookworm
         run: |
@@ -44,15 +51,21 @@ jobs:
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid
 
-      - name: 📋 Adicionar lista de pacotes personalizada
+      - name: 📋 Adicionar lista de pacotes (caminho corrigido)
         run: |
           mkdir -p config/package-lists/
-          cp pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
+          # Verifica se existe e copia
+          if [ -f ./pacotes/lista_completa.txt ]; then
+            cp ./pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
+          else
+            echo "ERRO: Arquivo lista_completa.txt não encontrado! Verifique a estrutura do repositório."
+            exit 1
+          fi
 
       - name: 📂 Incluir arquivos personalizados no sistema
         run: |
-          mkdir -p config/includes.chroot/opt/fydelis/
-          cp -r src instalador documentacao config/includes.chroot/opt/fydelis/ || true
+          mkdir -p config/includes.chroot/opt/fydel/
+          cp -r ./src ./instalador ./documentacao ./pacotes config/includes.chroot/opt/fydel/ || true
 
       - name: 🚀 Construir a ISO
         run: sudo lb build --verbose
