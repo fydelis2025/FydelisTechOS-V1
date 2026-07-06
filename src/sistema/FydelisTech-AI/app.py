@@ -5,7 +5,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import requests
 from datetime import datetime
-from fydel_ai import perguntar_ia
 
 # ---------------------- CONFIGURAÇÕES ----------------------
 load_dotenv()
@@ -27,37 +26,34 @@ db = SQLAlchemy(app)
 
 # ---------------------- CONFIGURAÇÕES OLLAMA ----------------------
 OLLAMA_URL = "http://localhost:11434/api/generate"
-#MODELO_IA = "llama3.2:3b"
-MODELO_IA = "gemma:2b-instruct-q4_K_M"  # modelo leve para notebook
+MODELO_IA = "gemma:2b-instruct-q4_K_M"  # Modelo leve ideal para a ISO/Notebook
 
 def consultar_ollama(mensagem):
-    instrucao_sistema = """
-Você é o Fydelistechos, assistente especializado em segurança da informação e pentest.
-Responda sempre em português, de forma clara e objetiva.
-Explique conceitos, mostre comandos e avise que o uso deve ser feito apenas com permissão legal.
-"""
+    # Unificado com a persona cyberpunk técnica do fydel_ai.py
+    instrucao_sistema = """Você é a FydelisTech-AI, a inteligência artificial oficial do FydelisTechOS. 
+Responda sempre em português, de forma direta, técnica, cyberpunk e especializada em segurança da informação e pentest.
+Mostre comandos práticos sempre que necessário e relembre que o uso das ferramentas deve respeitar permissões legais."""
+
     dados = {
         "model": MODELO_IA,
-        "prompt": f"{instrucao_sistema}\n\nPergunta: {mensagem}",
+        "prompt": f"{instrucao_sistema}\n\nOperador: {mensagem}",
         "stream": False,
         "keep_alive": -1,
         "options": {
             "temperature": 0.3,
-            "num_ctx": 2048,      # Aumentado para o modelo respirar (padrão aceitável)
-            "num_predict": 256,    # Mantém a resposta curta e rápida
-            "low_vram": True       # Mantido caso você não tenha placa de vídeo dedicada
-            # Deixe o 'num_thread' de fora para o Ollama usar o máximo da sua CPU automaticamente
+            "num_ctx": 2048,      # Espaço para contexto técnico
+            "num_predict": 256,    # Respostas curtas e ágeis no terminal web
+            "low_vram": True       # Otimizado para hardware antigo/antigo
         }
     }
     try:
-        # Envia a requisição
         resposta = requests.post(OLLAMA_URL, json=dados, timeout=60)
         resposta.raise_for_status()
-        return resposta.json().get("response", "Sem resposta da IA.")
+        return resposta.json().get("response", "Sem resposta.")
     except requests.exceptions.Timeout:
-        return "❌ Erro: O Ollama demorou muito para responder. Verifique se o modelo está carregado."
+        return "❌ Erro: O motor FydelisTech-AI demorou muito para responder. Verifique a carga do sistema."
     except Exception as e:
-        return f"❌ Erro na comunicação com Ollama: {str(e)}"
+        return f"❌ O motor FydelisTech-AI (Ollama) não está respondendo localmente: {str(e)}"
 
 # ---------------------- BANCO DE DADOS ----------------------
 class UsuarioDB(db.Model):
@@ -128,7 +124,6 @@ def ia():
         return redirect(url_for('login'))
     
     usuario = UsuarioDB.query.get(session['usuario_id'])
-    # Se usuário não existir mais, limpa sessão
     if usuario is None:
         session.clear()
         return redirect(url_for('login'))
@@ -145,14 +140,16 @@ def conversar():
     if 'usuario_id' not in session:
         return jsonify({"conteudo": "Acesso não autorizado."}), 403
 
-    dados = request.get_json()
+    dados = request.get_json() or {}
     mensagem = dados.get("mensagem", "").strip()
 
     if not mensagem:
         return jsonify({"conteudo": "Digite uma mensagem válida."})
 
+    # Consome o Ollama com a nova persona unificada
     resposta = consultar_ollama(mensagem)
 
+    # Registro de auditoria no Painel Admin
     novo_log = LogAtividade(
         usuario_id=session['usuario_id'],
         conteudo=f"Usuário: {mensagem}\nIA: {resposta}"
@@ -203,28 +200,9 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/api/chat', methods=['POST'])
-def api_chat():
-    # 1. Captura os dados enviados pela interface web
-    dados = request.get_json() or {}
-    mensagem_usuario = dados.get('mensagem', '').strip()
-    
-    if not mensagem_usuario:
-        return jsonify({"resposta": "⚠️ Mensagem vazia recebida pelo operador."}), 400
-        
-    # [OPCIONAL] Aqui você pode colocar travas de planos/pagamentos usando o payments.py
-    # ex: if user.plano == 'gratis': bloquear se passar do limite.
-
-    # 2. Consome o motor local do Ollama usando a função do fydel_ai.py
-    resposta_ia = perguntar_ia(mensagem_usuario)
-    
-    # 3. Retorna o JSON para o frontend atualizar a tela no navegador
-    return jsonify({"resposta": resposta_ia})
 # ---------------------- INICIAR SERVIDOR ----------------------
 if __name__ == '__main__':
     with app.app_context():
-        # Recria o banco completamente com a estrutura correta
-        
         db.create_all()
-        print("Banco de dados criado com estrutura correta!")
+        print("Banco de dados sincronizado!")
     app.run(host='0.0.0.0', port=5000, debug=True)
