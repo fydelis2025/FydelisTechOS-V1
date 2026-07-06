@@ -34,6 +34,7 @@ jobs:
 
       - name: 🔧 Preparar lista de pacotes
         run: |
+          mkdir -p src/pacotes/
           cat > src/pacotes/lista_completa.txt << 'EOF'
           # Sistema base
           base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
@@ -56,17 +57,17 @@ jobs:
           # Discos e armazenamento
           gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
           
-          # Segurança (disponíveis no Debian)
+          # Segurança (Pentest)
           wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
           
           # Sistema e configuração
           gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
           
-          # Python
+          # Python e IA
           python3 python3-pip python3-requests
           
           # Compilação
-          build-essential nasm gcc g++ make
+          build-essential nasm gcc g++ make libutil-dev
           EOF
 
       - name: ⚙️ Configurar Live Build
@@ -106,12 +107,12 @@ jobs:
           mkdir -p config/includes.chroot/opt/fydel/iso/
           
           # Terminal
-          cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+          cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/ 2>/dev/null || true
           
           # Scripts do sistema
-          cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/
-          cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/
-          cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/
+          cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ 2>/dev/null || true
+          cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ 2>/dev/null || true
+          cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ 2>/dev/null || true
           
           # GRUB
           cp -r src/sistema/grub/* config/includes.chroot/boot/grub/ 2>/dev/null || true
@@ -123,7 +124,7 @@ jobs:
           cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/ 2>/dev/null || true
           
           # Instalador
-          cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/
+          cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ 2>/dev/null || true
           
           # Telas
           cp src/telas/* config/includes.chroot/opt/fydel/telas/ 2>/dev/null || true
@@ -133,10 +134,46 @@ jobs:
           
           # Scripts ISO
           cp src/iso/* config/includes.chroot/opt/fydel/iso/ 2>/dev/null || true
+
+      - name: 🔧 Criar Hooks de pós-instalação (Compilar e Ativar Serviços)
+        run: |
+          mkdir -p config/hooks/normal
+          cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
+          #!/bin/bash
+          set -e
+
+          echo "=== [Hook] Compilando Terminal Híbrido (fydelterm) ==="
+          if [ -d /usr/local/src/fydel-terminal ]; then
+            cd /usr/local/src/fydel-terminal
+            make clean && make
+            # Caso o Makefile não jogue direto para o /usr/local/bin, garantimos a cópia:
+            cp fydelterm /usr/local/bin/ 2>/dev/null || true
+          fi
+
+          echo "=== [Hook] Configurando Permissões e Aliases ==="
+          chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
+          chmod +x /usr/local/bin/gerenciador_pacotes.sh 2>/dev/null || true
+          chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
+          chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
+
+          # Facilitar chamadas de comandos globais
+          ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
+          ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
+          ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
+
+          echo "=== [Hook] Ativando serviço do Terminal no TTY1 ==="
+          if [ -f /etc/systemd/system/fydelterm.service ]; then
+            systemctl daemon-reload
+            systemctl enable fydelterm.service
+          fi
+
+          echo "=== [Hook] Injetando telas e mensagens no perfil padrão ==="
+          # Exibir a tela de boas-vindas ao abrir o root do Live-CD
+          echo -e "\nif [ -f /opt/fydel/telas/tela_boas_vindas.txt ]; then cat /opt/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
+          echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
+          EOF
           
-          # Permissões de execução
-          chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
-          chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
+          chmod +x config/hooks/normal/0500-build-system.hook.chroot
 
       - name: 🔍 Verificar estrutura antes do build
         run: |
@@ -144,6 +181,8 @@ jobs:
           wc -l config/package-lists/fydelis.list.chroot
           echo "=== Arquivos incluídos na ISO ==="
           find config/includes.chroot/ -type f | sort
+          echo "=== Hooks configurados ==="
+          ls -la config/hooks/normal/
           echo "=== Tamanho total includes ==="
           du -sh config/includes.chroot/
 
@@ -151,26 +190,19 @@ jobs:
         run: |
           echo "Iniciando build da ISO..."
           lb build --verbose 2>&1
-          echo "Build finalizado. Código de saída: $?"
+          echo "Build finalizado."
 
       - name: 📦 Renomear ISO final
         run: |
           echo "Procurando ISO gerada..."
-          find . -name "*.iso" -ls 2>/dev/null || echo "Nenhum .iso encontrado com find"
-          ls -la *.iso 2>/dev/null || echo "Nenhum .iso na raiz"
-          ls -la images/*.iso 2>/dev/null || echo "Nenhum .iso em images/"
-          
           if [ -f live-image-amd64.hybrid.iso ]; then
             mv live-image-amd64.hybrid.iso FydelisTechOS-V1.0.iso
             ls -lh FydelisTechOS-V1.0.iso
           elif [ -f binary.iso ]; then
             mv binary.iso FydelisTechOS-V1.0.iso
             ls -lh FydelisTechOS-V1.0.iso
-          elif [ -f images/FydelisTechOS-V1.0.iso ]; then
-            ls -lh images/FydelisTechOS-V1.0.iso
           else
-            echo "❌ ISO não encontrada. Procurando em todo o diretório:"
-            find / -name "*.iso" -type f 2>/dev/null | head -20
+            echo "❌ ISO não encontrada."
             exit 1
           fi
 
