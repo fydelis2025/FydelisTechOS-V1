@@ -15,7 +15,7 @@ echo ""
 # Verificar e instalar ferramentas necessárias no ambiente Live-CD hospedeiro
 echo -e "\033[1;34m🔍 Verificando ferramentas no ambiente host...\033[0m"
 apt update -qq
-apt install -y -qq debootstrap dosfstools e2fsprogs grub-efi-amd64 grub-pc parted rsync build-essential nasm g++ gcc make > /dev/null
+apt install -y -qq debootstrap dosfstools e2fsprogs grub-efi-amd64 grub-pc parted rsync build-essential nasm g++ gcc make debian-archive-keyring > /dev/null
 
 # Listar discos disponíveis
 echo -e "\n\033[1;36m📀 Discos disponíveis no sistema:\033[0m"
@@ -92,14 +92,14 @@ for i in /dev /dev/pts /proc /sys /run; do mount -B "$i" "/mnt/fydel$i"; done
 # Preparar repositórios APT oficiais no sistema instalado
 echo -e "Configurando sources.list do sistema alvo..."
 cat <<EOF > /mnt/fydel/etc/apt/sources.list
-deb http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
-deb-src http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
 
-deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
-deb-src http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
 
-deb http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
-deb-src http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
 EOF
 
 # Estruturar os fontes do FydelisTechOS dentro do diretório /opt/do sistema alvo
@@ -119,7 +119,7 @@ echo "Atualizando base de dados do APT dentro do chroot..."
 apt-get update -qq
 
 echo "Instalando compiladores e ferramentas essenciais do sistema..."
-apt-get install -y -qq build-essential nasm g++ gcc make sudo locales grub-efi-amd64 grub-pc libutil-dev os-prober > /dev/null
+apt-get install -y -qq build-essential nasm g++ gcc make sudo locales grub-efi-amd64 grub-pc libutil-dev os-prober debian-archive-keyring debian-keyring > /dev/null
 
 # Gerar locales adequados
 echo "pt_BR.UTF-8 UTF-8" > /etc/locale.gen
