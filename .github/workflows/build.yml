@@ -61,12 +61,12 @@ jobs:
           wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
           
           # Sistema e configuração
-          gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
+          gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl plymouth plymouth-themes
           
           # Python e IA
           python3 python3-pip python3-requests
           
-          # Compilação (Removido o libutil-dev daqui!)
+          # Compilação
           build-essential nasm gcc g++ make
           EOF
 
@@ -96,7 +96,6 @@ jobs:
 
       - name: 📂 Copiar arquivos para a ISO
         run: |
-          # 1. Criar todas as pastas de destino essenciais no chroot
           mkdir -p config/includes.chroot/usr/local/bin/
           mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
           mkdir -p config/includes.chroot/boot/grub/
@@ -106,20 +105,31 @@ jobs:
           mkdir -p config/includes.chroot/opt/fydel/telas/
           mkdir -p config/includes.chroot/opt/fydel/iso/
           
-          # 2. Copiar os fontes do Terminal de forma segura se a pasta existir
+          mkdir -p config/bootloaders/grub/
+          mkdir -p config/includes.binary/boot/grub/
+          
           if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
             cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
           fi
           
-          # 3. Copiar scripts individuais verificando arquivo por arquivo
-          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "⚠️ fydel_ai.py não encontrado"
-          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "⚠️ gerenciador_pacotes.sh não encontrado"
-          [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "⚠️ usuarios_permissoes.sh não encontrado"
-          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "⚠️ fydel-install.sh não encontrado"
+          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
+          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
+          [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
+          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
           
-          # 4. Copiar subpastas opcionais validando se possuem conteúdo interno (evita erro 123)
           if [ -d "src/sistema/grub" ] && [ "$(ls -A src/sistema/grub 2>/dev/null)" ]; then
             cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
+          fi
+          
+          if [ -f "src/sistema/grub/grub-theme-fydel/splash.png" ]; then
+            echo "Injetando Splash no bootloader..."
+            cp src/sistema/grub/grub-theme-fydel/splash.png config/bootloaders/grub/splash.png
+            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.binary/boot/grub/splash.png
+            
+            mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
+            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
+          else
+            echo "splash.png nao encontrada"
           fi
           
           if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
@@ -142,7 +152,6 @@ jobs:
             cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
           fi
           
-          # 5. Aplicar permissões de execução nos scripts copiados
           chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
           chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
@@ -153,11 +162,56 @@ jobs:
           #!/bin/bash
           set -e
 
-          echo "=== [Hook] Compilando Terminal Híbrido (fydelterm) ==="
+          echo "=== [Hook] Removendo pacotes visuais padrões do Debian ==="
+          apt-get purge -y desktop-base || true
+
+          echo "=== [Hook] Configurando Tema de Splash Customizado (Plymouth) ==="
+          if [ -d /usr/share/plymouth/themes/fydel ]; then
+            cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
+[Plymouth Theme]
+Name=FydelisTechOS Splash
+Description=Custom splash screen for FydelisTechOS
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/fydel
+ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
+PLY
+
+            cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
+wallpaper_image = Image("background.png");
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+image_width = wallpaper_image.GetWidth();
+image_height = wallpaper_image.GetHeight();
+scale_x = screen_width / image_width;
+scale_y = screen_height / image_height;
+scale = Math.Max(scale_x, scale_y);
+resized_image = wallpaper_image.Scale(image_width * scale, image_height * scale);
+
+wallpaper_sprite = Sprite(resized_image);
+wallpaper_sprite.SetX((screen_width - resized_image.GetWidth()) / 2);
+wallpaper_sprite.SetY((screen_height - resized_image.GetHeight()) / 2);
+wallpaper_sprite.SetZ(-10);
+SCR
+
+            plymouth-set-default-theme fydel || true
+          fi
+
+          echo "=== [Hook] Forçando parâmetros gráficos do Kernel no GRUB ==="
+          if [ -f /etc/default/grub ]; then
+            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash vmwgfx.enable_fbdev=1"/' /etc/default/grub
+            update-grub || true
+          fi
+
+          echo "=== [Hook] Ativando Initramfs ==="
+          update-initramfs -u -k all || true
+
+          echo "=== [Hook] Compilando Terminal Híbrido ==="
           if [ -d /usr/local/src/fydel-terminal ]; then
             cd /usr/local/src/fydel-terminal
             make clean && make
-            # Caso o Makefile não jogue direto para o /usr/local/bin, garantimos a cópia:
             cp fydelterm /usr/local/bin/ 2>/dev/null || true
           fi
 
@@ -167,19 +221,17 @@ jobs:
           chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
           chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
 
-          # Facilitar chamadas de comandos globais
           ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
           ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
           ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
 
-          echo "=== [Hook] Ativando serviço do Terminal no TTY1 ==="
+          echo "=== [Hook] Ativando serviço do Terminal ==="
           if [ -f /etc/systemd/system/fydelterm.service ]; then
             systemctl daemon-reload
             systemctl enable fydelterm.service
           fi
 
-          echo "=== [Hook] Injetando telas e mensagens no perfil padrão ==="
-          # Exibir a tela de boas-vindas ao abrir o root do Live-CD
+          echo "=== [Hook] Injetando telas no perfil padrão ==="
           echo -e "\nif [ -f /opt/fydel/telas/tela_boas_vindas.txt ]; then cat /opt/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
           echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
           EOF
