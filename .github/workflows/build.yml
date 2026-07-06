@@ -25,19 +25,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🛠️ Configurar Debian no container e instalar dependências
+      - name: 🛠️ Configurar Debian e instalar dependências
         run: |
-          # Garante que o container Debian está atualizado
           apt-get update
           apt-get install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-            debian-archive-keyring debian-keyring curl sudo
+            debian-archive-keyring curl
 
-      - name: 🔧 Sanitizar lista de pacotes
+      - name: 🔧 Corrigir lista de pacotes para Bookworm
         run: |
-          sed -i '/metasploit-framework/d' src/pacotes/lista_completa.txt
-          sed -i '/hardinfo/d' src/pacotes/lista_completa.txt
-          echo "=== Lista de pacotes sanitizada ==="
+          cat > src/pacotes/lista_completa.txt << 'EOF'
+          # Sistema base Debian
+          base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
+          
+          # Ferramentas básicas
+          nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
+          
+          # Escritório e Multimídia
+          libreoffice libreoffice-l10n-pt-br evince gpicview
+          vlc
+          
+          # Áudio, Microfone e Som
+          pipewire pipewire-pulse wireplumber alsa-utils pavucontrol
+          
+          # Bluetooth
+          bluetooth bluez bluez-tools blueman
+          
+          # Rede e Internet
+          firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
+          
+          # Discos e armazenamento
+          gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
+          
+          # Segurança e Pentest (pacotes disponíveis no Debian)
+          wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
+          
+          # Sistema e configuração
+          gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
+          
+          # Python
+          python3 python3-pip python3-requests
+          EOF
+          echo "=== Lista de pacotes corrigida ==="
           cat src/pacotes/lista_completa.txt
 
       - name: ⚙️ Configurar Live Build
