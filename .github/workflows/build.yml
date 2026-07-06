@@ -185,33 +185,33 @@ jobs:
           echo "=== [Hook] Configurando Tema de Splash Customizado (Plymouth) ==="
           if [ -d /usr/share/plymouth/themes/fydel ]; then
           cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
-[Plymouth Theme]
-Name=FydelisTechOS Splash
-Description=Custom splash screen for FydelisTechOS
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/fydel
-ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
-PLY
+          [Plymouth Theme]
+          Name=FydelisTechOS Splash
+          Description=Custom splash screen for FydelisTechOS
+          ModuleName=script
+          
+          [script]
+          ImageDir=/usr/share/plymouth/themes/fydel
+          ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
+          PLY
 
           cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
-wallpaper_image = Image("background.png");
-screen_width = Window.GetWidth();
-screen_height = Window.GetHeight();
-
-image_width = wallpaper_image.GetWidth();
-image_height = wallpaper_image.GetHeight();
-scale_x = screen_width / image_width;
-scale_y = screen_height / image_height;
-scale = Math.Max(scale_x, scale_y);
-resized_image = wallpaper_image.Scale(image_width * scale, image_height * scale);
-
-wallpaper_sprite = Sprite(resized_image);
-wallpaper_sprite.SetX((screen_width - resized_image.GetWidth()) / 2);
-wallpaper_sprite.SetY((screen_height - resized_image.GetHeight()) / 2);
-wallpaper_sprite.SetZ(-10);
-SCR
+          wallpaper_image = Image("background.png");
+          screen_width = Window.GetWidth();
+          screen_height = Window.GetHeight();
+          
+          image_width = wallpaper_image.GetWidth();
+          image_height = wallpaper_image.GetHeight();
+          scale_x = screen_width / image_width;
+          scale_y = screen_height / image_height;
+          scale = Math.Max(scale_x, scale_y);
+          resized_image = wallpaper_image.Scale(image_width * scale, image_height * scale);
+          
+          wallpaper_sprite = Sprite(resized_image);
+          wallpaper_sprite.SetX((screen_width - resized_image.GetWidth()) / 2);
+          wallpaper_sprite.SetY((screen_height - resized_image.GetHeight()) / 2);
+          wallpaper_sprite.SetZ(-10);
+          SCR
 
             plymouth-set-default-theme fydel || true
           fi
