@@ -14,18 +14,13 @@ jobs:
       - name: 🚚 Baixando o código fonte do repositório
         uses: actions/checkout@v4
 
-      - name: ⚙️ Instalando ferramentas de compilação e Live-Build
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y live-build debootstrap xorriso syslinux-utils rsync build-essential nasm g++ gcc make debian-archive-keyring
-
       - name: 🏗️ Preparando a árvore do Live-Build
         run: |
           # Criar o diretório de compilação isolado
           mkdir -p /tmp/fydel-iso-build
           cd /tmp/fydel-iso-build
           
-          # Inicializar o live-build desativando o gerador automático de segurança para evitar poluição do Ubuntu
+          # Inicializar o live-build apenas com os parâmetros essenciais e aceitos universalmente
           lb config \
             --distribution bookworm \
             --architectures amd64 \
@@ -41,18 +36,16 @@ jobs:
             --parent-mirror-bootstrap "http://deb.debian.org/debian/" \
             --parent-mirror-chroot "http://deb.debian.org/debian/" \
             --parent-mirror-binary "http://deb.debian.org/debian/" \
-            --security false \
-            --updates false \
-            --backports false
+            --security false
 
-          # Injetar manualmente os repositórios puros, limpos e oficiais do Debian 12 (Base e Segurança)
+          # Garantir a criação da pasta de repositórios customizados
           mkdir -p config/archives
           
-          # Repositório de Segurança correto do Debian
+          # Forçar o uso do repositório de Segurança oficial do Debian 12 Bookworm
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" > config/archives/security.list.chroot
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" > config/archives/security.list.binary
           
-          # Repositório de Atualizações correto do Debian
+          # Forçar o uso do repositório de Atualizações oficial do Debian 12 Bookworm
           echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" > config/archives/updates.list.chroot
           echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" > config/archives/updates.list.binary
 
