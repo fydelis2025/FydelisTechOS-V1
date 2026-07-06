@@ -25,14 +25,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🛠️ Configurar Debian e instalar dependências
+      - name: 🛠️ Instalar dependências
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-            debian-archive-keyring curl
+            debian-archive-keyring curl findutils coreutils
 
-      - name: 🔧 Corrigir lista de pacotes para Bookworm
+      - name: 🔧 Preparar lista de pacotes
         run: |
           cat > src/pacotes/lista_completa.txt << 'EOF'
           # Sistema base
@@ -50,26 +50,24 @@ jobs:
           # Bluetooth
           bluetooth bluez bluez-tools blueman
           
-          # Rede
+          # Rede e Internet
           firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
           
-          # Discos
+          # Discos e armazenamento
           gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
           
-          # Segurança
+          # Segurança (disponíveis no Debian)
           wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
           
-          # Sistema
+          # Sistema e configuração
           gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
           
           # Python
           python3 python3-pip python3-requests
           
-          # Dependências para compilar terminal C/ASM
-          build-essential nasm gcc g++ make libutil-linux-dev
+          # Compilação
+          build-essential nasm gcc g++ make
           EOF
-          echo "=== Lista de pacotes final ==="
-          cat src/pacotes/lista_completa.txt
 
       - name: ⚙️ Configurar Live Build
         run: |
@@ -95,98 +93,84 @@ jobs:
           mkdir -p config/package-lists/
           cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
-      - name: 📂 Distribuir arquivos nos locais corretos do sistema
+      - name: 📂 Copiar arquivos para a ISO
         run: |
-          # ==========================================
-          # 1. TERMINAL FET (C/ASM) -> /usr/local/bin/
-          # ==========================================
+          # Cria todas as pastas de destino
+          mkdir -p config/includes.chroot/usr/local/bin/
           mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
+          mkdir -p config/includes.chroot/boot/grub/
+          mkdir -p config/includes.chroot/usr/share/icons/fydel/
+          mkdir -p config/includes.chroot/etc/systemd/system/
+          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
+          mkdir -p config/includes.chroot/opt/fydel/telas/
+          mkdir -p config/includes.chroot/opt/fydel/iso/
+          
+          # Terminal
           cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
           
-          # Script de compilação do terminal
-          cat > config/includes.chroot/usr/local/bin/compilar-terminal << 'COMPILE'
-          #!/bin/bash
-          cd /usr/local/src/fydel-terminal
-          make clean && make
-          cp fydel_term /usr/local/bin/
-          COMPILE
-          chmod +x config/includes.chroot/usr/local/bin/compilar-terminal
-
-          # ==========================================
-          # 2. SISTEMA (scripts, AI, grub, ícones, systemd)
-          # ==========================================
-          
-          # Scripts principais do sistema
-          mkdir -p config/includes.chroot/usr/local/bin/
+          # Scripts do sistema
           cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/
-          chmod +x config/includes.chroot/usr/local/bin/fydel_ai.py
-          
           cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/
-          chmod +x config/includes.chroot/usr/local/bin/gerenciador_pacotes.sh
-          
           cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/
-          chmod +x config/includes.chroot/usr/local/bin/usuarios_permissoes.sh
           
-          # Configuração GRUB personalizada
-          mkdir -p config/includes.chroot/boot/grub/
-          if [ -d src/sistema/grub ]; then
-            cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
-          fi
+          # GRUB
+          cp -r src/sistema/grub/* config/includes.chroot/boot/grub/ 2>/dev/null || true
           
-          # Ícones do sistema
-          mkdir -p config/includes.chroot/usr/share/icons/fydel/
-          if [ -d src/sistema/icones ]; then
-            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
-          fi
+          # Ícones
+          cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/ 2>/dev/null || true
           
-          # Serviços systemd personalizados
-          mkdir -p config/includes.chroot/etc/systemd/system/
-          if [ -d src/sistema/servicos_systemd ]; then
-            cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
-          fi
-
-          # ==========================================
-          # 3. INSTALADOR
-          # ==========================================
-          mkdir -p config/includes.chroot/usr/local/bin/
+          # Serviços systemd
+          cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/ 2>/dev/null || true
+          
+          # Instalador
           cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/
-          chmod +x config/includes.chroot/usr/local/bin/fydel-install.sh
+          
+          # Telas
+          cp src/telas/* config/includes.chroot/opt/fydel/telas/ 2>/dev/null || true
+          
+          # Documentação
+          cp src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/ 2>/dev/null || true
+          
+          # Scripts ISO
+          cp src/iso/* config/includes.chroot/opt/fydel/iso/ 2>/dev/null || true
+          
+          # Permissões de execução
+          chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
+          chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
-          # ==========================================
-          # 4. TELAS (mensagens de boas-vindas, etc)
-          # ==========================================
-          mkdir -p config/includes.chroot/opt/fydel/telas/
-          cp src/telas/* config/includes.chroot/opt/fydel/telas/
-
-          # ==========================================
-          # 5. DOCUMENTAÇÃO
-          # ==========================================
-          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
-          cp src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
-
-          # ==========================================
-          # 6. SCRIPTS DE GERAÇÃO ISO (apenas referência)
-          # ==========================================
-          mkdir -p config/includes.chroot/opt/fydel/iso/
-          cp src/iso/scripts_geracao_iso.sh config/includes.chroot/opt/fydel/iso/
-
-          echo "=== Estrutura final em config/includes.chroot/ ==="
+      - name: 🔍 Verificar estrutura antes do build
+        run: |
+          echo "=== Pacotes a instalar ==="
+          wc -l config/package-lists/fydelis.list.chroot
+          echo "=== Arquivos incluídos na ISO ==="
           find config/includes.chroot/ -type f | sort
+          echo "=== Tamanho total includes ==="
+          du -sh config/includes.chroot/
 
       - name: 🚀 Construir a ISO
-        run: lb build --verbose 2>&1
+        run: |
+          echo "Iniciando build da ISO..."
+          lb build --verbose 2>&1
+          echo "Build finalizado. Código de saída: $?"
 
       - name: 📦 Renomear ISO final
         run: |
+          echo "Procurando ISO gerada..."
+          find . -name "*.iso" -ls 2>/dev/null || echo "Nenhum .iso encontrado com find"
+          ls -la *.iso 2>/dev/null || echo "Nenhum .iso na raiz"
+          ls -la images/*.iso 2>/dev/null || echo "Nenhum .iso em images/"
+          
           if [ -f live-image-amd64.hybrid.iso ]; then
             mv live-image-amd64.hybrid.iso FydelisTechOS-V1.0.iso
             ls -lh FydelisTechOS-V1.0.iso
           elif [ -f binary.iso ]; then
             mv binary.iso FydelisTechOS-V1.0.iso
             ls -lh FydelisTechOS-V1.0.iso
+          elif [ -f images/FydelisTechOS-V1.0.iso ]; then
+            ls -lh images/FydelisTechOS-V1.0.iso
           else
-            echo "❌ ISO não foi gerada"
-            ls -la *.iso *.iso.* 2>/dev/null || echo "Nenhum .iso encontrado"
+            echo "❌ ISO não encontrada. Procurando em todo o diretório:"
+            find / -name "*.iso" -type f 2>/dev/null | head -20
             exit 1
           fi
 
