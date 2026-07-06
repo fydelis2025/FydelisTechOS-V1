@@ -1,0 +1,22 @@
+[Unit]
+Description=Terminal Oficial Fydelistechos OS (Modo Quiosque)
+Documentation=https://fydelistechos.com.br
+After=systemd-user-sessions.service getty.target local-fs.target
+Conflicts=getty@tty1.service
+
+[Service]
+Type=idle
+User=usuario
+Group=fydel-users
+ExecStart=/usr/local/bin/fydelterm
+Restart=always
+RestartSec=3
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Environment=TERM=xterm-256color
+
+[Install]
+WantedBy=multi-user.target

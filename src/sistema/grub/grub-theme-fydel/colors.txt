@@ -1,0 +1,5 @@
+# Cores do sistema
+color_normal=white/black
+color_highlight=cyan/blue
+color_help=light-gray/black
+color_error=red/black

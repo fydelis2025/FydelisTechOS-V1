@@ -1,0 +1,30 @@
+# Sistema base Debian
+base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux
+
+# Ferramentas básicas
+nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
+
+# Escritório e Multimídia
+libreoffice libreoffice-l10n-pt-br evince gpicview
+vlc vlc-l10n
+
+# Áudio, Microfone e Som
+pulseaudio pulseaudio-utils alsa-utils alsa-tools alsa-base pavucontrol pavucontrol-qt volumeicon-alsa
+
+# Bluetooth
+bluetooth bluez bluez-tools blueman
+
+# Rede e Internet
+firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
+
+# Discos e armazenamento
+gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
+
+# Segurança e Pentest
+wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto metasploit-framework binwalk foremost testdisk chkrootkit rkhunter
+
+# Sistema e configuração
+gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
+
+# Dependências para a FydelisTech-AI
+python3 python3-pip python3-requests
