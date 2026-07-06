@@ -244,7 +244,7 @@ void tela_principal() {
 }
 
 // 🚀 Executar ações e programas
-void ejecutar_opcao(int opcao) {
+void executar_opcao(int opcao) {
     modo_texto();
     limpar_tela();
     std::cout << COR_FUNDO << COR_BRANCO << "\n🔄 Carregando...\n";
