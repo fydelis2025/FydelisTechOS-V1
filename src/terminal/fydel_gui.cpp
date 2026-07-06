@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "fydel_api.h"
+#include <fstream>   
 
 // ===================== DEFINIÇÕES DE CORES =====================
 #define COR_RESET       "\033[0m"
