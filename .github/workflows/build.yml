@@ -1,0 +1,143 @@
+name: Construtor Oficial FydelisTechOS ISO
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Permite que você clique em um botão no GitHub para compilar manualmente
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Baixando o código fonte do repositório
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Instalando ferramentas de compilação e Live-Build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap xorriso syslinux-utils rsync build-essential nasm g++ gcc make libutil-dev
+
+      - name: 🏗️ Preparando a árvore do Live-Build
+        run: |
+          # Criar o diretório de compilação isolado
+          mkdir -p /tmp/fydel-iso-build
+          cd /tmp/fydel-iso-build
+          
+          # Inicializar o live-build para Debian 12 Bookworm de 64 bits
+          lb config \
+            --distribution bookworm \
+            --architectures amd64 \
+            --binary-images iso-hybrid \
+            --iso-application "Fydelistechos OS" \
+            --iso-publisher "Fydelistechos" \
+            --iso-volume "FYDEL_OS_1_0" \
+            --bootloaders grub-pc \
+            --archive-areas "main contrib non-free non-free-firmware"
+
+      - name: 📦 Mapeando pacotes (lista_completa.txt)
+        run: |
+          cd /tmp/fydel-iso-build
+          if [ -f "$GITHUB_WORKSPACE/pacotes/lista_completa.txt" ]; then
+            # Limpa comentários e gera a lista oficial para o live-build
+            grep -v '^#' "$GITHUB_WORKSPACE/pacotes/lista_completa.txt" | tr '\n' ' ' > config/package-lists/fydel.list.chroot
+            # Adiciona dependências extras necessárias para a IA em Python
+            echo " python3 python3-pip python3-requests curl" >> config/package-lists/fydel.list.chroot
+          else
+            # Fallback caso o arquivo não seja mapeado no caminho
+            echo "libreoffice firefox-esr gparted network-manager nmap metasploit-framework htop nano vim python3 python3-requests curl" > config/package-lists/fydel.list.chroot
+          fi
+
+      - name: 🚚 Injetando códigos, instalador e telas do FydelisTechOS
+        run: |
+          cd /tmp/fydel-iso-build
+          MNT_CHROOT="config/includes.chroot"
+          mkdir -p "$MNT_CHROOT/opt/fydel"
+          mkdir -p "$MNT_CHROOT/usr/share/fydel/telas"
+          mkdir -p "$MNT_CHROOT/usr/local/bin"
+          mkdir -p "$MNT_CHROOT/etc/systemd/system"
+          
+          # Copia toda a árvore do repositório para dentro do sistema live (/opt/fydel)
+          rsync -a "$GITHUB_WORKSPACE/" "$MNT_CHROOT/opt/fydel/"
+          
+          # Mover a tela de boas-vindas ASCII para o diretório correto
+          if [ -f "$GITHUB_WORKSPACE/src/telas/tela_boas_vindas.txt" ]; then
+            cp "$GITHUB_WORKSPACE/src/telas/tela_boas_vindas.txt" "$MNT_CHROOT/usr/share/fydel/telas/"
+          fi
+          
+          # Injetar o instalador automatizado fydel-install no binário global
+          if [ -f "$GITHUB_WORKSPACE/instalador/fydel-install.sh" ]; then
+            cp "$GITHUB_WORKSPACE/instalador/fydel-install.sh" "$MNT_CHROOT/usr/local/bin/fydel-install"
+            chmod +x "$MNT_CHROOT/usr/local/bin/fydel-install"
+          fi
+
+      - name: 🔧 Criando o Hook de pós-instalação (Compilação e Configurações)
+        run: |
+          cd /tmp/fydel-iso-build
+          mkdir -p config/hooks/normal
+          
+          cat <<'EOF' > config/hooks/normal/0500-configurar-sistema.hook.chroot
+          #!/bin/bash
+          set -e
+          
+          echo "=== [Hook] Compilando Terminal Híbrido (fydelterm) ==="
+          cd /opt/fydel/src/terminal/
+          make clean && make
+          make install
+          
+          echo "=== [Hook] Instalando a interface da FydelisTech-AI ==="
+          if [ -f /opt/fydel/src/sistema/fydelistech-ai/app.py ]; then
+            cp /opt/fydel/src/sistema/fydelistech-ai/app.py /usr/local/bin/fydel-ai
+            chmod +x /usr/local/bin/fydel-ai
+          fi
+          
+          echo "=== [Hook] Rodando script oficial de permissões e perfis ==="
+          chmod +x /opt/fydel/src/sistema/usuarios_permissoes.sh
+          /opt/fydel/src/sistema/usuarios_permissoes.sh
+          
+          echo "=== [Hook] Ativando fydel-pkg ==="
+          chmod +x /opt/fydel/src/sistema/gerenciador_pacotes.sh
+          ln -sf /opt/fydel/src/sistema/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
+          
+          echo "=== [Hook] Ativando serviço Systemd do Terminal ==="
+          if [ -f /opt/fydel/src/sistema/servicos_systemd/fydelterm.service ]; then
+            cp /opt/fydel/src/sistema/servicos_systemd/fydelterm.service /etc/systemd/system/
+            systemctl daemon-reload
+            systemctl enable fydelterm.service
+          fi
+          
+          echo "=== [Hook] Configurando Tema do GRUB ==="
+          mkdir -p /boot/grub/themes/grub-theme-fydel
+          if [ -d /opt/fydel/src/sistema/grub/grub-theme-fydel ]; then
+            cp -r /opt/fydel/src/sistema/grub/grub-theme-fydel/* /boot/grub/themes/grub-theme-fydel/
+            sed -i 's/#GRUB_GFXMODE=.*/GRUB_GFXMODE=1920x1080,1280x720,auto/' /etc/default/grub
+            echo 'GRUB_THEME="/boot/grub/themes/grub-theme-fydel/theme.txt"' >> /etc/default/grub
+          fi
+          
+          echo "=== [Hook] Configurações de Boot do Live-CD ==="
+          echo -e "\nif [ -f /usr/share/fydel/telas/tela_boas_vindas.txt ]; then cat /usr/share/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
+          echo -e "echo -e '\\n\\033[1;35mPara instalar o FydelisTechOS, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
+          EOF
+          
+          chmod +x config/hooks/normal/0500-configurar-sistema.hook.chroot
+
+      - name: 🚀 Executando o lb build para gerar o arquivo ISO
+        run: |
+          cd /tmp/fydel-iso-build
+          sudo lb build
+          
+          # Mover a ISO gerada para o diretório de trabalho do runner
+          if [ -f live-image-amd64.hybrid.iso ]; then
+            mv live-image-amd64.hybrid.iso $GITHUB_WORKSPACE/fydelistechos.iso
+          else
+            echo "❌ Erro: O arquivo ISO não foi gerado pelo live-build."
+            exit 1
+          fi
+
+      - name: 📦 Disponibilizando a ISO para download (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FydelisTechOS-ISO-Oficial
+          path: fydelistechos.iso
+          retention-days: 7 # A ISO ficará guardada na nuvem por 7 dias para você baixar
