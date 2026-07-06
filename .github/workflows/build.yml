@@ -201,7 +201,7 @@ jobs:
 
           echo "=== [Hook] Forçando parâmetros gráficos do Kernel no GRUB ==="
           if [ -f /etc/default/grub ]; then
-            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash vmwgfx.enable_fbdev=1"/' /etc/default/grub
+            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nomodeset video=efifb:off"/' /etc/default/grub
             update-grub || true
           fi
 
