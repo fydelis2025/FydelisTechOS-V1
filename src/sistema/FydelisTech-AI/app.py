@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import requests
 from datetime import datetime
+from fydel_ai import perguntar_ia
 
 # ---------------------- CONFIGURAÇÕES ----------------------
 load_dotenv()
@@ -202,6 +203,23 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    # 1. Captura os dados enviados pela interface web
+    dados = request.get_json() or {}
+    mensagem_usuario = dados.get('mensagem', '').strip()
+    
+    if not mensagem_usuario:
+        return jsonify({"resposta": "⚠️ Mensagem vazia recebida pelo operador."}), 400
+        
+    # [OPCIONAL] Aqui você pode colocar travas de planos/pagamentos usando o payments.py
+    # ex: if user.plano == 'gratis': bloquear se passar do limite.
+
+    # 2. Consome o motor local do Ollama usando a função do fydel_ai.py
+    resposta_ia = perguntar_ia(mensagem_usuario)
+    
+    # 3. Retorna o JSON para o frontend atualizar a tela no navegador
+    return jsonify({"resposta": resposta_ia})
 # ---------------------- INICIAR SERVIDOR ----------------------
 if __name__ == '__main__':
     with app.app_context():
