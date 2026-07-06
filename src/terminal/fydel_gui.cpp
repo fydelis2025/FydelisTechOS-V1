@@ -6,8 +6,8 @@
 #include <cstdlib>
 #include <termios.h>
 #include <unistd.h>
+#include <fstream>   // Corrigido: Include essencial para leitura de arquivos de texto
 #include "fydel_api.h"
-#include <fstream>   
 
 // ===================== DEFINIÇÕES DE CORES =====================
 #define COR_RESET       "\033[0m"
@@ -51,8 +51,9 @@ std::string barra(int valor) {
     int preenchido = (valor * tam) / 100;
     std::string b = "[";
     for (int i = 0; i < tam; i++) {
-        if (i < preenchido) b += COR_ROXO + "■" + COR_BRANCO;
-        else b += COR_CINZA + "□" + COR_BRANCO;
+        // Corrigido: Conversão explícita para std::string evita o erro do operador+ binário
+        if (i < preenchido) b += std::string(COR_ROXO) + "■" + COR_BRANCO;
+        else b += std::string(COR_CINZA) + "□" + COR_BRANCO;
     }
     b += "] " + std::to_string(valor) + "%";
     return b;
@@ -70,11 +71,11 @@ void tela_splash() {
     std::cout << "            " << COR_ROXO << "██╔════╝╚██╗ ██╔╝██╔══██╗██╔══██╗██║     ██║██╔════╝╚══██╔══╝" << COR_BRANCO << "\n";
     std::cout << "            " << COR_ROXO << "█████╗   ╚████╔╝ ██████╔╝██║  ██║██║     ██║█████╗     ██║   " << COR_BRANCO << "\n";
     std::cout << "            " << COR_ROXO << "██╔══╝    ╚██╔╝  ██╔══██╗██║  ██║██║     ██║██╔══╝     ██║   " << COR_BRANCO << "\n";
-    std::cout << "            " << COR_ROXO << "██║        ██║   ██║  ██║██████╔╝███████╗██║██║        ██║   " << COR_BRANCO << "\n";
-    std::cout << "            " << COR_ROXO << "╚═╝        ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝╚═╝        ╚═╝   " << COR_BRANCO << "\n";
+    std::cout << "            " << COR_ROXO << "██║         ██║   ██║  ██║██████╔╝███████╗██║██║         ██║   " << COR_BRANCO << "\n";
+    std::cout << "            " << COR_ROXO << "╚═╝         ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝╚═╝         ╚═╝   " << COR_BRANCO << "\n";
 
     std::cout << "\n\n";
-    std::cout << "                   " << COR_AZUL << "Sistema Operacional Fydelistech v1.0" << COR_BRANCO << "\n";
+    std::cout << "                    " << COR_AZUL << "Sistema Operacional Fydelistech v1.0" << COR_BRANCO << "\n";
     std::cout << "                " << COR_CINZA << "Carregando módulos e programas..." << COR_BRANCO << "\n";
     std::cout << "\n";
     std::cout << "                [■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■] 100%\n";
@@ -86,7 +87,7 @@ void tela_splash() {
 // ℹ️ Tela Boas Vindas o Fydelistechos
 void exibir_boas_vindas() {
     limpar_tela();
-    // Procura o arquivo no local onde a ISO o vai instalar (ex: /usr/share/fydel/telas/)
+    // Procura o arquivo no local onde a ISO o vai instalar
     std::ifstream arquivo("/usr/share/fydel/telas/tela_boas_vindas.txt");
     
     if (arquivo.is_open()) {
@@ -102,7 +103,7 @@ void exibir_boas_vindas() {
     }
 
     std::cout << "\n  " << COR_CINZA << "Pressione ENTER para entrar no sistema..." << COR_RESET;
-    std::cin.ignore(); std::cin.get();
+    std::cin.ignore(10000, '\n'); std::cin.get();
 }
 
 // ℹ️ Tela Sobre o Fydelistechos
@@ -114,28 +115,27 @@ void tela_sobre() {
     std::cout << "  ║                    🚀 FYDELISTECHOS OS v1.0              ║\n";
     std::cout << "  ╠════════════════════════════════════════════════════════════╣\n";
     std::cout << "  ║                                                            ║\n";
-    std::cout << "  ║  Desenvolvido por: Fydelistechos Tecnologia               ║\n";
-    std::cout << "  ║  Base: Debian GNU/Linux 12 (Bookworm) estável             ║\n";
-    std::cout << "  ║  Versão: 1.0 - Julho/2026                                 ║\n";
-    std::cout << "  ║  Licença: GPL v3 - Código aberto e livre                 ║\n";
+    std::cout << "  ║  Desenvolvido por: Fydelistechos Tecnologia                ║\n";
+    std::cout << "  ║  Base: Debian GNU/Linux 12 (Bookworm) estável              ║\n";
+    std::cout << "  ║  Versão: 1.0 - Julho/2026                                  ║\n";
+    std::cout << "  ║  Licença: GPL v3 - Código aberto e livre                   ║\n";
     std::cout << "  ║                                                            ║\n";
-    std::cout << "  ║  🎯 Objetivo: Sistema seguro, leve e personalizado,       ║\n";
-    std::cout << "  ║  com foco em desempenho e facilidade de uso.              ║\n";
+    std::cout << "  ║  🎯 Objetivo: Sistema seguro, leve e personalizado,        ║\n";
+    std::cout << "  ║  com foco em desempenho e facilidade de uso.               ║\n";
     std::cout << "  ║                                                            ║\n";
-    std::cout << "  ║  ✨ Características:                                      ║\n";
-    std::cout << "  ║  • Terminal próprio desenvolvido em Assembly + C/C++     ║\n";
-    std::cout << "  ║  • Gerenciador de pacotes compatível com repositórios     ║\n";
-    std::cout << "  ║  • Interface personalizada e intuitiva                    ║\n";
-    std::cout << "  ║  • Ferramentas completas para uso diário e segurança      ║\n";
+    std::cout << "  ║  ✨ Características:                                       ║\n";
+    std::cout << "  ║  • Terminal próprio desenvolvido em Assembly + C/C++      ║\n";
+    std::cout << "  ║  • Gerenciador de pacotes compatível com repositórios      ║\n";
+    std::cout << "  ║  • Interface personalizada e intuitiva                     ║\n";
+    std::cout << "  ║  • Ferramentas completas para uso diário e segurança       ║\n";
     std::cout << "  ║                                                            ║\n";
-    std::cout << "  📧 Contato: suporte@fydelistechos.com.br                 ║\n";
-    std::cout << "  🌐 Site: https://fydelistechos.com.br                     ║\n";
+    std::cout << "  📧 Contato: suporte@fydelistechos.com.br                     ║\n";
+    std::cout << "  🌐 Site: https://fydelistechos.com.br                        ║\n";
     std::cout << "  ║                                                            ║\n";
     std::cout << "  ╚════════════════════════════════════════════════════════════╝\n";
 
     std::cout << "\n  " << COR_CINZA << "Pressione ENTER para voltar ao menu principal..." << COR_RESET;
-    std::cin.ignore(); std::cin.get();
-    // CORREÇÃO: Apenas retorna em vez de chamar tela_principal() recursivamente
+    std::cin.ignore(10000, '\n'); std::cin.get();
 }
 
 // ⚙️ Painel de Controle do Sistema
@@ -150,13 +150,13 @@ void tela_painel_controle() {
         std::cout << "  ║                                                            ║\n";
         std::cout << "  ║  Escolha uma opção de configuração:                        ║\n";
         std::cout << "  ║                                                            ║\n";
-        std::cout << "  ║  " << COR_AMARELO << "[1]" << COR_BRANCO << " 👤 Gerenciar usuários e senhas                ║\n";
+        std::cout << "  ║  " << COR_AMARELO << "[1]" << COR_BRANCO << " 👤 Gerenciar usuários e senhas                 ║\n";
         std::cout << "  ║  " << COR_AMARELO << "[2]" << COR_BRANCO << " 🌐 Configurações de rede e internet           ║\n";
-        std::cout << "  ║  " << COR_AMARELO << "[3]" << COR_BRANCO << " 🔊 Configurações de som e vídeo               ║\n";
+        std::cout << "  ║  " << COR_AMARELO << "[3]" << COR_BRANCO << " 🔊 Configurações de som e vídeo                ║\n";
         std::cout << "  ║  " << COR_AMARELO << "[4]" << COR_BRANCO << " 📅 Data, hora e fuso horário                  ║\n";
-        std::cout << "  ║  " << COR_AMARELO << "[5]" << COR_BRANCO << " 🔄 Atualizações e manutenção do sistema       ║\n";
-        std::cout << "  ║  " << COR_AMARELO << "[6]" << COR_BRANCO << " ℹ️ Sobre o Fydelistechos OS                   ║\n";
-        std::cout << "  ║  " << COR_AMARELO << "[0]" << COR_BRANCO << " ⬅️ Voltar ao menu principal                   ║\n";
+        std::cout << "  ║  " << COR_AMARELO << "[5]" << COR_BRANCO << " 🔄 Atualizações e manutenção do sistema        ║\n";
+        std::cout << "  ║  " << COR_AMARELO << "[6]" << COR_BRANCO << " ℹ️ Sobre o Fydelistechos OS                    ║\n";
+        std::cout << "  ║  " << COR_AMARELO << "[0]" << COR_BRANCO << " ⬅️ Voltar ao menu principal                    ║\n";
         std::cout << "  ║                                                            ║\n";
         std::cout << "  ╚════════════════════════════════════════════════════════════╝\n";
 
@@ -165,7 +165,7 @@ void tela_painel_controle() {
         std::cin >> op;
 
         if (op == '0') {
-            return; // CORREÇÃO: Retorna ao menu principal sem empilhar chamadas
+            return; 
         }
 
         switch(op) {
@@ -203,7 +203,7 @@ void tela_painel_controle() {
         }
 
         std::cout << "\n\n  " << COR_CINZA << "Pressione ENTER para continuar..." << COR_RESET;
-        std::cin.ignore(); std::cin.get();
+        std::cin.ignore(10000, '\n'); std::cin.get();
     }
 }
 
@@ -220,7 +220,7 @@ void tela_principal() {
     std::cout << "\n  " << COR_ROXO << "fydelistechos v1.0" << COR_BRANCO << " | Base Debian GNU/Linux 12\n\n";
     std::cout << "  ┌─────────────────────────────────────────────────────────────────────┐\n";
     std::cout << "  │                                                                     │\n";
-    std::cout << "  │                    " << saudacao << "                                   │\n";
+    std::cout << "  │                    " << saudacao << "                                    │\n";
     std::cout << "  │                                                                     │\n";
     std::cout << "  └─────────────────────────────────────────────────────────────────────┘\n\n";
 
@@ -235,7 +235,7 @@ void tela_principal() {
     std::cout << "  " << COR_AMARELO << "[6]" << COR_ROXO << " 📦 " << COR_BRANCO << "Gerenciador de Pacotes FYDEL\n";
     std::cout << "  " << COR_AMARELO << "[7]" << COR_ROXO << " 🔒 " << COR_BRANCO << "Ferramentas de Segurança\n";
     std::cout << "  " << COR_AMARELO << "[8]" << COR_ROXO << " 💻 " << COR_BRANCO << "Terminal de Comandos\n";
-	std::cout << "  " << COR_AMARELO << "[9]" << COR_ROXO << " 🤖 " << COR_BRANCO << "Assistente FydelisTech-AI\n";
+    std::cout << "  " << COR_AMARELO << "[9]" << COR_ROXO << " 🤖 " << COR_BRANCO << "Assistente FydelisTech-AI\n";
     std::cout << "  " << COR_AMARELO << "[0]" << COR_ROXO << " 🚪 " << COR_BRANCO << "Sair da Sessão\n\n";
 
     std::cout << "  ───────────────────────────────────────────────────────────────────────────────────\n";
@@ -244,7 +244,7 @@ void tela_principal() {
 }
 
 // 🚀 Executar ações e programas
-void executar_opcao(int opcao) {
+void ejecutar_opcao(int opcao) {
     modo_texto();
     limpar_tela();
     std::cout << COR_FUNDO << COR_BRANCO << "\n🔄 Carregando...\n";
@@ -268,7 +268,7 @@ void executar_opcao(int opcao) {
             break;
         case 5:
             tela_painel_controle();
-            return; // Retorna direto para a main remontar a tela_principal
+            return; 
         case 6:
             std::cout << COR_VERDE << "\n📦 Abrindo Gerenciador de Pacotes...\n" << COR_RESET;
             system("fydel-pkg");
@@ -282,23 +282,24 @@ void executar_opcao(int opcao) {
             modo_cru();
             pty_loop(fd_mestre);
             return;
-		case 9:
+        case 9:
             std::cout << COR_VERDE << "\n🤖 Conectando ao núcleo FydelisTech-AI...\n" << COR_RESET;
-            modo_texto(); // Muda para o modo de texto normal para o Python capturar o teclado
-            system("python3 /usr/local/bin/fydel-ai"); // Executa o script de IA
-            return; // Retorna para a main atualizar o menu ao sair
+            modo_texto(); 
+            system("python3 /usr/local/bin/fydel-ai"); 
+            return; 
         case 0:
             std::cout << COR_VERDE << "\n👋 Encerrando sessão... Até logo!\n" << COR_RESET;
             std::this_thread::sleep_for(std::chrono::seconds(1));
             pty_fechar();
             exit(0);
         default:
-            std::cout << COR_VERMELHO << "\n❌ Opção inválida! Escolha um número de 0 a 8.\n" << COR_RESET;
+            // Corrigido: Texto ajustado para incluir a opção 9 no escopo de opções válidas
+            std::cout << COR_VERMELHO << "\n❌ Opção inválida! Escolha um número de 0 a 9.\n" << COR_RESET;
             break;
     }
 
     std::cout << "\n\n  " << COR_CINZA << "Pressione ENTER para voltar ao menu..." << COR_RESET;
-    std::cin.ignore(); std::cin.get();
+    std::cin.ignore(10000, '\n'); std::cin.get();
 }
 
 // ===================== FUNÇÃO PRINCIPAL =====================
