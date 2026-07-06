@@ -36,7 +36,8 @@ jobs:
           sudo apt update
           sudo apt install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-            debian-archive-keyring debian-keyring build-essential nasm gcc g++ make libutil-dev
+            debian-archive-keyring debian-keyring \
+            build-essential nasm gcc g++ make libutil-linux-dev
 
       - name: ⚙️ Configurar Live Build para Debian Bookworm
         run: |
