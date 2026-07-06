@@ -13,6 +13,7 @@ jobs:
       DEBIAN_DIST: bookworm
       ARCH: amd64
       MIRROR: http://deb.debian.org/debian/
+      SEC_MIRROR: http://deb.debian.org/debian-security/
 
     steps:
       - name: 📥 Clonar repositório
@@ -43,12 +44,24 @@ jobs:
             --archive-areas "main contrib non-free non-free-firmware" \
             --mirror-bootstrap "${MIRROR}" \
             --mirror-chroot "${MIRROR}" \
+            --mirror-chroot-security "${SEC_MIRROR}" \
             --mirror-binary "${MIRROR}" \
+            --mirror-binary-security "${SEC_MIRROR}" \
             --iso-application "FydelisTechOS V1" \
             --iso-publisher "FydelisTech" \
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid \
-            --cache-packages false
+            --cache-packages false \
+            --apt-source-archives false
+
+      - name: 📋 Forçar sources.list correto do Debian
+        run: |
+          # Sobrescreve o sources.list que o live-build gerou com a URL do Ubuntu
+          cat > config/archives/bookworm.debootstrap.list.chroot << 'EOF'
+          deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+          deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+          deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+          EOF
 
       - name: 📋 Copiar lista de pacotes
         run: |
