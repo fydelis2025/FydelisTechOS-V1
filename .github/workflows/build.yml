@@ -27,12 +27,11 @@ jobs:
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
             debian-archive-keyring debian-keyring
 
-      - name: 🔧 Sanitizar lista de pacotes (remover pacotes não-Debian)
+      - name: 🔧 Sanitizar lista de pacotes
         run: |
-          # Remove metasploit-framework e hardinfo que não existem nos repositórios Debian
           sed -i '/metasploit-framework/d' src/pacotes/lista_completa.txt
           sed -i '/hardinfo/d' src/pacotes/lista_completa.txt
-          echo "Lista de pacotes sanitizada:"
+          echo "=== Lista de pacotes sanitizada ==="
           cat src/pacotes/lista_completa.txt
 
       - name: ⚙️ Configurar Live Build
@@ -49,7 +48,6 @@ jobs:
             --iso-publisher "FydelisTech" \
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid \
-            --debootstrap-options "--variant=minbase" \
             --cache-packages false
 
       - name: 📋 Copiar lista de pacotes
@@ -61,7 +59,6 @@ jobs:
         run: |
           mkdir -p config/includes.chroot/opt/fydel/
           cp -r src/* config/includes.chroot/opt/fydel/
-          # Remove a pasta pacotes do include (não necessária no sistema final)
           rm -rf config/includes.chroot/opt/fydel/pacotes
 
       - name: 🚀 Construir a ISO
@@ -77,7 +74,6 @@ jobs:
             ls -lh FydelisTechOS-V1.0.iso
           else
             echo "❌ ISO não foi gerada"
-            echo "Arquivos encontrados em $(pwd):"
             ls -la *.iso *.iso.* 2>/dev/null || echo "Nenhum .iso encontrado"
             exit 1
           fi
