@@ -22,6 +22,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🔍 Verificar estrutura de arquivos
+        run: |
+          echo "Conteúdo da raiz:"
+          ls -la
+          echo "Conteúdo da pasta src:"
+          ls -la src/
+          echo "Conteúdo da pasta pacotes:"
+          ls -la src/pacotes/ || echo "Pasta src/pacotes não encontrada"
+
       - name: 🛠️ Instalar dependências de build
         run: |
           sudo apt update
@@ -44,50 +53,15 @@ jobs:
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid
 
-      - name: 📋 Preparar lista de pacotes
+      - name: 📋 Copiar lista de pacotes
         run: |
           mkdir -p config/package-lists/
-          if [ -f ./src/pacotes/lista_completa.txt ]; then
-            cp ./src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
-          else
-            echo "Criando lista de pacotes..."
-            mkdir -p ./src/pacotes/
-            echo "# Sistema base Debian" > ./src/pacotes/lista_completa.txt
-            echo "base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Ferramentas básicas" >> ./src/pacotes/lista_completa.txt
-            echo "nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Escritório e Multimídia" >> ./src/pacotes/lista_completa.txt
-            echo "libreoffice libreoffice-l10n-pt-br evince gpicview vlc vlc-l10n" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Áudio, Microfone e Som" >> ./src/pacotes/lista_completa.txt
-            echo "pulseaudio pulseaudio-utils alsa-utils alsa-tools alsa-base pavucontrol pavucontrol-qt volumeicon-alsa" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Bluetooth" >> ./src/pacotes/lista_completa.txt
-            echo "bluetooth bluez bluez-tools blueman" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Rede e Internet" >> ./src/pacotes/lista_completa.txt
-            echo "firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Discos e armazenamento" >> ./src/pacotes/lista_completa.txt
-            echo "gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Segurança e Pentest" >> ./src/pacotes/lista_completa.txt
-            echo "wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto metasploit-framework binwalk foremost testdisk chkrootkit rkhunter" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Sistema e configuração" >> ./src/pacotes/lista_completa.txt
-            echo "gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl" >> ./src/pacotes/lista_completa.txt
-            echo "" >> ./src/pacotes/lista_completa.txt
-            echo "# Dependências para a FydelisTech-AI" >> ./src/pacotes/lista_completa.txt
-            echo "python3 python3-pip python3-requests" >> ./src/pacotes/lista_completa.txt
-            cp ./src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
-          fi
+          cp ./src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
       - name: 📂 Incluir arquivos do sistema
         run: |
           mkdir -p config/includes.chroot/opt/fydel/
-          cp -r ./src/* config/includes.chroot/opt/fydel/ || true
+          cp -r ./src/* config/includes.chroot/opt/fydel/
 
       - name: 🚀 Construir a ISO
         run: sudo lb build --verbose
