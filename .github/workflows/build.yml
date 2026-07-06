@@ -51,7 +51,7 @@ jobs:
             cp ./src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
           else
             mkdir -p ./src/pacotes/
-            cat > ./src/pacotes/lista_completa.txt <<-'EOF'
+            cat > ./src/pacotes/lista_completa.txt << 'EOF'
 # Sistema base Debian
 base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring
 
