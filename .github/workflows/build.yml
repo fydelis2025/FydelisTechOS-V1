@@ -5,7 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Permite que você clique em um botão no GitHub para compilar manualmente
+  workflow_dispatch: # Permite disparar a build manualmente pela interface do GitHub
 
 jobs:
   build-iso:
@@ -16,7 +16,7 @@ jobs:
 
       - name: 🏗️ Preparando Ambiente e Árvore do Live-Build
         run: |
-          # 1. Instalar as ferramentas diretamente na sessão atual
+          # 1. Instalar as ferramentas essenciais de compilação na sessão atual do terminal
           sudo apt-get update
           sudo apt-get install -y live-build debootstrap xorriso syslinux-utils rsync build-essential nasm g++ gcc make debian-archive-keyring
 
@@ -24,7 +24,7 @@ jobs:
           mkdir -p /tmp/fydel-iso-build
           cd /tmp/fydel-iso-build
           
-          # 3. Executar o lb config na mesma janela de terminal
+          # 3. Executar o lb config utilizando apenas os parâmetros universais e aceites
           lb config \
             --distribution bookworm \
             --architectures amd64 \
@@ -42,10 +42,14 @@ jobs:
             --parent-mirror-binary "http://deb.debian.org/debian/" \
             --security false
 
-          # 4. Garantir a criação da pasta de repositórios customizados sem herança do Ubuntu
+          # 4. Injetar manualmente os repositórios estáveis do Debian 12 para isolar do Ubuntu host
           mkdir -p config/archives
+          
+          # Repositório de Segurança oficial do Debian
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" > config/archives/security.list.chroot
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" > config/archives/security.list.binary
+          
+          # Repositório de Atualizações oficial do Debian
           echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" > config/archives/updates.list.chroot
           echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" > config/archives/updates.list.binary
 
@@ -55,10 +59,10 @@ jobs:
           if [ -f "$GITHUB_WORKSPACE/pacotes/lista_completa.txt" ]; then
             # Limpa comentários e gera a lista oficial para o live-build
             grep -v '^#' "$GITHUB_WORKSPACE/pacotes/lista_completa.txt" | tr '\n' ' ' > config/package-lists/fydel.list.chroot
-            # Adiciona dependências extras necessárias para a IA em Python
+            # Adiciona dependências de infraestrutura para o Python e IA
             echo " python3 python3-pip python3-requests curl" >> config/package-lists/fydel.list.chroot
           else
-            # Fallback caso o arquivo não seja mapeado no caminho
+            # Fallback seguro com os softwares principais caso a lista_completa não mapeie
             echo "libreoffice firefox-esr gparted network-manager nmap metasploit-framework htop nano vim python3 python3-requests curl" > config/package-lists/fydel.list.chroot
           fi
 
@@ -71,15 +75,15 @@ jobs:
           mkdir -p "$MNT_CHROOT/usr/local/bin"
           mkdir -p "$MNT_CHROOT/etc/systemd/system"
           
-          # Copia toda a árvore do repositório para dentro do sistema live (/opt/fydel)
+          # Mover toda a estrutura do repositório clonada para dentro do chroot da ISO
           rsync -a "$GITHUB_WORKSPACE/" "$MNT_CHROOT/opt/fydel/"
           
-          # Mover a tela de boas-vindas ASCII para o diretório correto
+          # Injetar a tela ASCII corporativa
           if [ -f "$GITHUB_WORKSPACE/src/telas/tela_boas_vindas.txt" ]; then
             cp "$GITHUB_WORKSPACE/src/telas/tela_boas_vindas.txt" "$MNT_CHROOT/usr/share/fydel/telas/"
           fi
           
-          # Injetar o instalador automatizado fydel-install no binário global
+          # Adicionar o instalador fydel-install como comando binário nativo
           if [ -f "$GITHUB_WORKSPACE/instalador/fydel-install.sh" ]; then
             cp "$GITHUB_WORKSPACE/instalador/fydel-install.sh" "$MNT_CHROOT/usr/local/bin/fydel-install"
             chmod +x "$MNT_CHROOT/usr/local/bin/fydel-install"
@@ -128,7 +132,7 @@ jobs:
             echo 'GRUB_THEME="/boot/grub/themes/grub-theme-fydel/theme.txt"' >> /etc/default/grub
           fi
           
-          echo "=== [Hook] Configurações de Boot do Live-CD ==="
+          echo "=== [Hook] Configurações de Mensagens do Live-CD ==="
           echo -e "\nif [ -f /usr/share/fydel/telas/tela_boas_vindas.txt ]; then cat /usr/share/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
           echo -e "echo -e '\\n\\033[1;35mPara instalar o FydelisTechOS, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
           EOF
@@ -140,11 +144,11 @@ jobs:
           cd /tmp/fydel-iso-build
           sudo lb build
           
-          # Mover a ISO gerada para o diretório de trabalho do runner
+          # Verificar a geração e mover a ISO finalizada para o workspace do GitHub
           if [ -f live-image-amd64.hybrid.iso ]; then
             mv live-image-amd64.hybrid.iso $GITHUB_WORKSPACE/fydelistechos.iso
           else
-            echo "❌ Erro: O arquivo ISO não foi gerado pelo live-build."
+            echo "❌ Erro catastrófico: O arquivo ISO final não foi localizado após o build."
             exit 1
           fi
 
@@ -153,4 +157,4 @@ jobs:
         with:
           name: FydelisTechOS-ISO-Oficial
           path: fydelistechos.iso
-          retention-days: 7 # A ISO ficará guardada na nuvem por 7 dias para você baixar
+          retention-days: 7
