@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white min-h-screen p-10">
+    <h1 class="text-3xl text-center mb-10">ESCOLHA SEU PLANO</h1>
+    
+    <div class="flex justify-center">
+        <div class="bg-gray-800 p-10 rounded-xl border border-blue-500 w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4">PREMIUM</h2>
+            
+            <div id="paypal-button-container" class="min-h-[50px]"></div>
+            
+            <button id="btn-fallback" onclick="alert('Erro: PayPal não carregou')" class="w-full mt-4 bg-red-600 p-2 rounded">
+                Debug: Clicar aqui
+            </button>
+        </div>
+    </div>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=ATNEdeuDm50e9XCMIqbIaYMX0tCdcE0KaGDyyMvqSUgvDetniEjX84Gp9lFbmLop-lJIvLpkMsjlmwyW&currency=BRL"></script>
+    <script>
+        // Oculta o botão de fallback se o PayPal carregar
+        paypal.Buttons({
+            onInit: function(data, actions) {
+                document.getElementById('btn-fallback').style.display = 'none';
+            },
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{ amount: { value: '30.00' } }]
+                });
+            },
+            onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                // Envia para o seu servidor flask adicionar o saldo
+                fetch('/confirmar-pagamento', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        orderID: data.orderID,
+                        valor: 30.00 // O valor que será somado ao saldo
+                    })
+                }).then(res => res.json()).then(data => {
+                    if(data.status === 'sucesso') {
+                        alert('Saldo adicionado com sucesso!');
+                        window.location.href = '/ia';
+                    }
+                });
+            });
+        }
+    }).render('#paypal-button-container');
+    </script>
+</body>
+</html>
