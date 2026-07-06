@@ -1,3 +1,4 @@
+# FydelisTechOS-V1
 # 📘 Guia do Usuário - FydelisTechOS v1.0
 
 Bem-vindo ao manual oficial do **FydelisTechOS**, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema.
