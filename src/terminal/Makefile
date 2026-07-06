@@ -4,7 +4,8 @@ AS = nasm
 CFLAGS = -Wall -O2
 CXXFLAGS = -Wall -O2 -std=c++17
 ASFLAGS = -f elf64
-LDFLAGS = -lutil -pthread
+# Corrigido: Adicionado -no-pie para permitir a linkagem do Assembly absoluto (.bss)
+LDFLAGS = -no-pie -lutil -pthread
 
 all: fydelterm
 
