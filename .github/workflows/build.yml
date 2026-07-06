@@ -66,8 +66,8 @@ jobs:
           # Python e IA
           python3 python3-pip python3-requests
           
-          # Compilação
-          build-essential nasm gcc g++ make libutil-dev
+          # Compilação (Removido o libutil-dev daqui!)
+          build-essential nasm gcc g++ make
           EOF
 
       - name: ⚙️ Configurar Live Build
