@@ -24,8 +24,9 @@ jobs:
           mkdir -p /tmp/fydel-iso-build
           cd /tmp/fydel-iso-build
           
-          # 3. Executar o lb config utilizando apenas os parâmetros universais e aceites
+          # 3. Executar o lb config forçando o Modo Debian e o uso do chaveiro correto do Debian
           lb config \
+            --mode debian \
             --distribution bookworm \
             --architectures amd64 \
             --binary-images iso-hybrid \
@@ -34,6 +35,7 @@ jobs:
             --iso-volume "FYDEL_OS_1_0" \
             --bootloader grub-pc \
             --archive-areas "main contrib non-free non-free-firmware" \
+            --keyring debian-archive-keyring \
             --mirror-bootstrap "http://deb.debian.org/debian/" \
             --mirror-chroot "http://deb.debian.org/debian/" \
             --mirror-binary "http://deb.debian.org/debian/" \
