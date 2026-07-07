@@ -26,14 +26,6 @@ jobs:
           fetch-depth: 0
 
       # Mantido para garantir limpeza preventiva no host hospedeiro
-      - name: Liberar espaco no disco do Runner
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          df -h
-
       - name: 🛠️ Instalar dependências
         run: |
           apt-get update
