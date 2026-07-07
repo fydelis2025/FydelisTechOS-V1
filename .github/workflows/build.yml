@@ -79,12 +79,18 @@ jobs:
       - name: ⚙️ Configurar Live Build
         run: |
           rm -rf auto config || true
+          
+          # Truque definitivo: Enganar o instalador criando o chaveiro que o script do Ubuntu exige
+          sudo mkdir -p /usr/share/keyrings
+          sudo ln -sf /usr/share/keyrings/debian-archive-keyring.gpg /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          sudo ln -sf /usr/share/keyrings/debian-archive-keyring.gpg /usr/share/keyrings/ubuntu-keyring.gpg
+          
+          # Executa a configuração padrão limpa
           sudo lb config \
             --distribution "${DEBIAN_DIST}" \
             --architectures "${ARCH}" \
             --archive-areas "main contrib non-free non-free-firmware" \
             --bootstrap-keyring debian-archive-keyring \
-            --debootstrap-options "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg" \
             --mirror-bootstrap "${MIRROR}" \
             --mirror-chroot "${MIRROR}" \
             --mirror-chroot-security "${SEC_MIRROR}" \
