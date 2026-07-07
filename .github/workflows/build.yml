@@ -84,6 +84,7 @@ jobs:
             --architectures "${ARCH}" \
             --archive-areas "main contrib non-free non-free-firmware" \
             --bootstrap-keyring debian-archive-keyring \
+            --debootstrap-options "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg" \
             --mirror-bootstrap "${MIRROR}" \
             --mirror-chroot "${MIRROR}" \
             --mirror-chroot-security "${SEC_MIRROR}" \
