@@ -2,6 +2,7 @@
 import sys
 import requests
 import json
+import os
 
 # Configurações de cores ANSI (Estilo Cyberpunk)
 ROXO = "\033[38;2;120;90;255m"
@@ -17,13 +18,22 @@ def detectar_melhor_modelo():
                     mem_kb = int(linha.split()[1])
                     mem_gb = mem_kb / (1024 * 1024)
                     
-                    # Se for um PC simples (menos de 4GB), vai de Gemma
+                    # Seleciona o modelo ideal com base no hardware
                     if mem_gb < 4.0:
-                        return "gemma:2b-instruct-q4_K_M"
+                        modelo = "gemma:2b-instruct-q4_K_M"
                     else:
-                        return "llama3.2:3b"
+                        modelo = "llama3.2:3b"
+                    
+                    # Garante que o modelo selecionado está baixado antes de prosseguir
+                    # Mandar um prompt vazio '' faz o Ollama baixar (se não existir) e fechar em seguida
+                    print(f"\n{ROXO}🤖 Verificando integridade da Matriz {modelo}...{RESET}")
+                    os.system(f"ollama run {modelo} '' > /dev/null 2>&1")
+                    
+                    return modelo
     except Exception:
-        return "gemma:2b-instruct-q4_K_M" # Fallback seguro para PC fraco
+        # Fallback seguro para PC fraco
+        os.system("ollama run gemma:2b-instruct-q4_K_M '' > /dev/null 2>&1")
+        return "gemma:2b-instruct-q4_K_M"
 
 def perguntar_ia(prompt, modelo_customizado=None):
     """
@@ -39,10 +49,10 @@ def perguntar_ia(prompt, modelo_customizado=None):
         "model": modelo, 
         "prompt": f"Você é a FydelisTech-AI, a inteligência artificial oficial do FydelisTechOS. Responda de forma direta, técnica e cyberpunk à seguinte questão: {prompt}",
         "stream": False
-    } # Chave corrigida aqui!
+    }
     
     try:
-        response = requests.post(url, json=payload, timeout=15)
+        response = requests.post(url, json=payload, timeout=30) # Aumentado o timeout para 30s caso esteja processando em CPU antiga
         if response.status_code == 200:
             return response.json().get("response", "Sem resposta.")
         return "❌ Erro na comunicação com o motor de IA."
@@ -51,8 +61,10 @@ def perguntar_ia(prompt, modelo_customizado=None):
 
 # O bloco abaixo SÓ roda se o arquivo for executado direto (ex: fydel-ai no terminal)
 if __name__ == "__main__":
+    print(f"{ROXO}🤖 Inicializando FydelisTech-AI v1.0...")
     modelo_ativo = detectar_melhor_modelo()
-    print(f"{ROXO}🤖 FydelisTech-AI v1.0 iniciada. Perfil de hardware detectado.")
+    
+    print(f"{ROXO}🤖 Perfil de hardware mapeado com sucesso.")
     print(f"🧠 Matriz de Inteligência Ativa: {BRANCO}{modelo_ativo}{ROXO}")
     print(f"Como posso te ajudar, operador? (Digite 'sair' para retornar){RESET}\n")
 
