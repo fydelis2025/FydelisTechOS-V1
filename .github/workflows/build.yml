@@ -9,7 +9,6 @@ jobs:
   build-iso:
     name: Gerar Imagem ISO
     runs-on: ubuntu-24.04
-    # REMOVIDO: Tiramos o bloco 'container:' para rodar direto no Ubuntu Host que tem 100GB+ livres
     env:
       DEBIAN_FRONTEND: noninteractive
       DEBIAN_DIST: bookworm
@@ -98,70 +97,70 @@ jobs:
 
       - name: 📋 Copiar lista de pacotes
         run: |
-          mkdir -p config/package-lists/
-          cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
+          sudo mkdir -p config/package-lists/
+          sudo cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
       - name: 📂 Copiar arquivos para a ISO
         run: |
-          mkdir -p config/includes.chroot/usr/local/bin/
-          mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
-          mkdir -p config/includes.chroot/boot/grub/
-          mkdir -p config/includes.chroot/usr/share/icons/fydel/
-          mkdir -p config/includes.chroot/etc/systemd/system/
-          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
-          mkdir -p config/includes.chroot/opt/fydel/telas/
-          mkdir -p config/includes.chroot/opt/fydel/iso/
+          sudo mkdir -p config/includes.chroot/usr/local/bin/
+          sudo mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
+          sudo mkdir -p config/includes.chroot/boot/grub/
+          sudo mkdir -p config/includes.chroot/usr/share/icons/fydel/
+          sudo mkdir -p config/includes.chroot/etc/systemd/system/
+          sudo mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
+          sudo mkdir -p config/includes.chroot/opt/fydel/telas/
+          sudo mkdir -p config/includes.chroot/opt/fydel/iso/
           
-          mkdir -p config/bootloaders/grub/
-          mkdir -p config/includes.binary/boot/grub/
+          sudo mkdir -p config/bootloaders/grub/
+          sudo mkdir -p config/includes.binary/boot/grub/
           
           if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
-            cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+            sudo cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
           fi
           
-          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
-          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
-          [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
-          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
+          [ -f "src/sistema/fydel_ai.py" ] && sudo cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
+          [ -f "src/sistema/gerenciador_pacotes.sh" ] && sudo cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
+          [ -f "src/sistema/usuarios_permissoes.sh" ] && sudo cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
+          [ -f "src/instalador/fydel-install.sh" ] && sudo cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
           
           if [ -d "src/sistema/grub" ] && [ "$(ls -A src/sistema/grub 2>/dev/null)" ]; then
-            cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
+            sudo cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
           fi
           
           if [ -f "src/sistema/grub/grub-theme-fydel/splash.png" ]; then
-            cp src/sistema/grub/grub-theme-fydel/splash.png config/bootloaders/grub/splash.png
-            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.binary/boot/grub/splash.png
-            mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
-            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
+            sudo cp src/sistema/grub/grub-theme-fydel/splash.png config/bootloaders/grub/splash.png
+            sudo cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.binary/boot/grub/splash.png
+            sudo mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
+            sudo cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
           fi
           
           if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
-            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
+            sudo cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
           fi
           
           if [ -d "src/sistema/servicos_systemd" ] && [ "$(ls -A src/sistema/servicos_systemd 2>/dev/null)" ]; then
-            cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
+            sudo cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
           fi
           
           if [ -d "src/telas" ] && [ "$(ls -A src/telas 2>/dev/null)" ]; then
-            cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
+            sudo cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
           fi
           
           if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
-            cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
+            sudo cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
           fi
           
           if [ -d "src/iso" ] && [ "$(ls -A src/iso 2>/dev/null)" ]; then
-            cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
+            sudo cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
           fi
           
-          chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
-          chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
+          sudo chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
+          sudo chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
       - name: 🔧 Criar Hooks de pós-instalação
         run: |
-          mkdir -p config/hooks/normal
-          cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
+          sudo mkdir -p config/hooks/normal
+          sudo cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
           #!/bin/bash
           set -e
 
@@ -230,7 +229,7 @@ jobs:
           echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
           EOF
           
-          chmod +x config/hooks/normal/0500-build-system.hook.chroot
+          sudo chmod +x config/hooks/normal/0500-build-system.hook.chroot
 
       - name: 🚀 Construir a ISO (Executado como Sudo no Host)
         run: |
