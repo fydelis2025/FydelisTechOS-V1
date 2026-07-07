@@ -160,7 +160,7 @@ jobs:
       - name: 🔧 Criar Hooks de pós-instalação
         run: |
           sudo mkdir -p config/hooks/normal
-          sudo cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
+          sudo tee config/hooks/normal/0500-build-system.hook.chroot << 'EOF' > /dev/null
           #!/bin/bash
           set -e
 
