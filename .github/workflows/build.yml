@@ -186,24 +186,24 @@ jobs:
           echo "=== [Hook] Configurando Plymouth ==="
           if [ -d /usr/share/plymouth/themes/fydel]; then
           cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
-[Plymouth Theme]
-Name=FydelisTechOS Splash
-Description=Custom splash screen for FydelisTechOS
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/fydel
-ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
-PLY
-
-          cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
-wallpaper_image = Image("background.png");
-screen_width = Window.GetWidth();
-screen_height = Window.GetHeight();
-resized_image = wallpaper_image.Scale(screen_width, screen_height);
-wallpaper_sprite = Sprite(resized_image);
-wallpaper_sprite.SetZ(-10);
-SCR
+          [Plymouth Theme]
+          Name=FydelisTechOS Splash
+          Description=Custom splash screen for FydelisTechOS
+          ModuleName=script
+          
+          [script]
+          ImageDir=/usr/share/plymouth/themes/fydel
+          ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
+          PLY
+          
+                    cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
+          wallpaper_image = Image("background.png");
+          screen_width = Window.GetWidth();
+          screen_height = Window.GetHeight();
+          resized_image = wallpaper_image.Scale(screen_width, screen_height);
+          wallpaper_sprite = Sprite(resized_image);
+          wallpaper_sprite.SetZ(-10);
+          SCR
 
             plymouth-set-default-theme fydel || true
           fi
