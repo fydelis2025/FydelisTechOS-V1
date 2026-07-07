@@ -29,7 +29,6 @@ jobs:
 
       - name: 🚀 Executar Build dentro do Container Debian com Espaço do Host
         run: |
-          # Criamos um script que vai rodar isolado dentro do container Debian puro
           cat << 'CONTAINER_SCRIPT' > run_build.sh
           #!/bin/bash
           set -e
@@ -48,8 +47,8 @@ jobs:
           echo "=== 2. Preparar lista de pacotes ==="
           mkdir -p src/pacotes/
           cat > src/pacotes/lista_completa.txt << 'EOF'
-          # Sistema base
-          base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
+          # Sistema base e Inicialização Live USB (Adicionados para corrigir o Initramfs)
+          live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
           
           # Ferramentas básicas
           nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
@@ -166,43 +165,54 @@ jobs:
           set -e
           echo "=== [Hook] Instalando o Ollama ==="
           curl -fsSL https://ollama.com/install.sh | sh || true
+
+          echo "=== [Hook] Inicializando o Ollama para baixar os modelos de fábrica ==="
+          ollama serve &
+          SLEEP_PID=$!
+          sleep 10
+
+          echo "=== [Hook] Baixando Modelo Leve (Gemma 2B) ==="
+          ollama pull gemma:2b-instruct-q4_K_M || true
+
+          echo "=== [Hook] Baixando Modelo Avançado (Llama 3.2 3B) ==="
+          ollama pull llama3.2:3b || true
+
+          kill $SLEEP_PID || true
+          sleep 5
           
           echo "=== [Hook] Removendo pacotes visuais padrões ==="
           apt-get purge -y desktop-base || true
 
           echo "=== [Hook] Configurando Plymouth ==="
-          if [ -d /usr/share/plymouth/themes/fydel ]; then
+          if [ -d /usr/share/plymouth/themes/fydel]; then
           cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
-          [Plymouth Theme]
-          Name=FydelisTechOS Splash
-          Description=Custom splash screen for FydelisTechOS
-          ModuleName=script
-          
-          [script]
-          ImageDir=/usr/share/plymouth/themes/fydel
-          ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
-          PLY
+[Plymouth Theme]
+Name=FydelisTechOS Splash
+Description=Custom splash screen for FydelisTechOS
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/fydel
+ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
+PLY
 
           cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
-          wallpaper_image = Image("background.png");
-          screen_width = Window.GetWidth();
-          screen_height = Window.GetHeight();
-          resized_image = wallpaper_image.Scale(screen_width, screen_height);
-          wallpaper_sprite = Sprite(resized_image);
-          wallpaper_sprite.SetZ(-10);
-          SCR
+wallpaper_image = Image("background.png");
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+resized_image = wallpaper_image.Scale(screen_width, screen_height);
+wallpaper_sprite = Sprite(resized_image);
+wallpaper_sprite.SetZ(-10);
+SCR
 
             plymouth-set-default-theme fydel || true
           fi
 
-          echo "=== [Hook] Configurando GRUB ==="
+          echo "=== [Hook] Configurando GRUB com parametros universais ==="
           if [ -f /etc/default/grub ]; then
             sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nomodeset video=efifb:off"/' /etc/default/grub
             update-grub || true
           fi
-
-          echo "=== [Hook] Ativando Initramfs ==="
-          update-initramfs -u -k all || true
 
           echo "=== [Hook] Compilando Terminal Híbrido ==="
           if [ -d /usr/local/src/fydel-terminal ]; then
@@ -235,11 +245,8 @@ jobs:
           echo "Build finalizado com sucesso dentro do container."
           CONTAINER_SCRIPT
 
-          # Dá permissão de execução no script hospedeiro
           chmod +x run_build.sh
 
-          # PULO DO GATO: Subir o docker do Debian Bookworm mapeando a pasta atual do host.
-          # Isso dá o ambiente puro do Debian sem herdar restrições do Ubuntu e usa o disco gigante do host!
           sudo docker run --privileged --rm \
             -v "$GITHUB_WORKSPACE:/workspace" \
             -w /workspace \
