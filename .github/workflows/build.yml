@@ -83,6 +83,7 @@ jobs:
             --distribution "${DEBIAN_DIST}" \
             --architectures "${ARCH}" \
             --archive-areas "main contrib non-free non-free-firmware" \
+            --bootstrap-keyring debian-archive-keyring \
             --mirror-bootstrap "${MIRROR}" \
             --mirror-chroot "${MIRROR}" \
             --mirror-chroot-security "${SEC_MIRROR}" \
