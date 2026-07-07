@@ -11,10 +11,6 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       DEBIAN_FRONTEND: noninteractive
-      DEBIAN_DIST: bookworm
-      ARCH: amd64
-      MIRROR: http://deb.debian.org/debian/
-      SEC_MIRROR: http://deb.debian.org/debian-security/
 
     steps:
       - name: 📥 Clonar repositório
@@ -31,15 +27,25 @@ jobs:
           sudo apt-get clean
           df -h
 
-      - name: 🛠️ Instalar dependências (Agora com cpio incluso)
+      - name: 🚀 Executar Build dentro do Container Debian com Espaço do Host
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          # Criamos um script que vai rodar isolado dentro do container Debian puro
+          cat << 'CONTAINER_SCRIPT' > run_build.sh
+          #!/bin/bash
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          export DEBIAN_DIST=bookworm
+          export ARCH=amd64
+          export MIRROR=http://deb.debian.org/debian/
+          export SEC_MIRROR=http://deb.debian.org/debian-security/
+
+          echo "=== 1. Instalar dependências nativas do Debian ==="
+          apt-get update
+          apt-get install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
             debian-archive-keyring curl findutils coreutils cpio
 
-      - name: 🔧 Preparar lista de pacotes
-        run: |
+          echo "=== 2. Preparar lista de pacotes ==="
           mkdir -p src/pacotes/
           cat > src/pacotes/lista_completa.txt << 'EOF'
           # Sistema base
@@ -76,21 +82,12 @@ jobs:
           build-essential nasm gcc g++ make
           EOF
 
-      - name: ⚙️ Configurar Live Build
-        run: |
+          echo "=== 3. Configurar Live Build ==="
           rm -rf auto config || true
-          
-          # Truque definitivo: Enganar o instalador criando o chaveiro que o script do Ubuntu exige
-          sudo mkdir -p /usr/share/keyrings
-          sudo ln -sf /usr/share/keyrings/debian-archive-keyring.gpg /usr/share/keyrings/ubuntu-archive-keyring.gpg
-          sudo ln -sf /usr/share/keyrings/debian-archive-keyring.gpg /usr/share/keyrings/ubuntu-keyring.gpg
-          
-          # Executa a configuração padrão limpa
-          sudo lb config \
+          lb config \
             --distribution "${DEBIAN_DIST}" \
             --architectures "${ARCH}" \
             --archive-areas "main contrib non-free non-free-firmware" \
-            --bootstrap-keyring debian-archive-keyring \
             --mirror-bootstrap "${MIRROR}" \
             --mirror-chroot "${MIRROR}" \
             --mirror-chroot-security "${SEC_MIRROR}" \
@@ -103,75 +100,70 @@ jobs:
             --cache-packages false \
             --apt-source-archives false
 
-      - name: 📋 Copiar lista de pacotes
-        run: |
-          sudo mkdir -p config/package-lists/
-          sudo cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
+          echo "=== 4. Copiar lista de pacotes e arquivos ==="
+          mkdir -p config/package-lists/
+          cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
-      - name: 📂 Copiar arquivos para a ISO
-        run: |
-          sudo mkdir -p config/includes.chroot/usr/local/bin/
-          sudo mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
-          sudo mkdir -p config/includes.chroot/boot/grub/
-          sudo mkdir -p config/includes.chroot/usr/share/icons/fydel/
-          sudo mkdir -p config/includes.chroot/etc/systemd/system/
-          sudo mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
-          sudo mkdir -p config/includes.chroot/opt/fydel/telas/
-          sudo mkdir -p config/includes.chroot/opt/fydel/iso/
+          mkdir -p config/includes.chroot/usr/local/bin/
+          mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
+          mkdir -p config/includes.chroot/boot/grub/
+          mkdir -p config/includes.chroot/usr/share/icons/fydel/
+          mkdir -p config/includes.chroot/etc/systemd/system/
+          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
+          mkdir -p config/includes.chroot/opt/fydel/telas/
+          mkdir -p config/includes.chroot/opt/fydel/iso/
           
-          sudo mkdir -p config/bootloaders/grub/
-          sudo mkdir -p config/includes.binary/boot/grub/
+          mkdir -p config/bootloaders/grub/
+          mkdir -p config/includes.binary/boot/grub/
           
           if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
-            sudo cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+            cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
           fi
           
-          [ -f "src/sistema/fydel_ai.py" ] && sudo cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
-          [ -f "src/sistema/gerenciador_pacotes.sh" ] && sudo cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
-          [ -f "src/sistema/usuarios_permissoes.sh" ] && sudo cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
-          [ -f "src/instalador/fydel-install.sh" ] && sudo cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
+          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
+          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
+          [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
+          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
           
           if [ -d "src/sistema/grub" ] && [ "$(ls -A src/sistema/grub 2>/dev/null)" ]; then
-            sudo cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
+            cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
           fi
           
           if [ -f "src/sistema/grub/grub-theme-fydel/splash.png" ]; then
-            sudo cp src/sistema/grub/grub-theme-fydel/splash.png config/bootloaders/grub/splash.png
-            sudo cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.binary/boot/grub/splash.png
-            sudo mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
-            sudo cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
+            cp src/sistema/grub/grub-theme-fydel/splash.png config/bootloaders/grub/splash.png
+            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.binary/boot/grub/splash.png
+            mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
+            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
           fi
           
           if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
-            sudo cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
+            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
           fi
           
           if [ -d "src/sistema/servicos_systemd" ] && [ "$(ls -A src/sistema/servicos_systemd 2>/dev/null)" ]; then
-            sudo cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
+            cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
           fi
           
           if [ -d "src/telas" ] && [ "$(ls -A src/telas 2>/dev/null)" ]; then
-            sudo cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
+            cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
           fi
           
           if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
-            sudo cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
+            cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
           fi
           
           if [ -d "src/iso" ] && [ "$(ls -A src/iso 2>/dev/null)" ]; then
-            sudo cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
+            cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
           fi
           
-          sudo chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
-          sudo chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
+          chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
+          chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
-      - name: 🔧 Criar Hooks de pós-instalação
-        run: |
-          sudo mkdir -p config/hooks/normal
-          sudo tee config/hooks/normal/0500-build-system.hook.chroot << 'EOF' > /dev/null
+          echo "=== 5. Criar Hooks ==="
+          mkdir -p config/hooks/normal
+          cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
           #!/bin/bash
           set -e
-
           echo "=== [Hook] Instalando o Ollama ==="
           curl -fsSL https://ollama.com/install.sh | sh || true
           
@@ -236,14 +228,22 @@ jobs:
           echo -e "\nif [ -f /opt/fydel/telas/tela_boas_vindas.txt ]; then cat /opt/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
           echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
           EOF
-          
-          sudo chmod +x config/hooks/normal/0500-build-system.hook.chroot
+          chmod +x config/hooks/normal/0500-build-system.hook.chroot
 
-      - name: 🚀 Construir a ISO (Executado como Sudo no Host)
-        run: |
-          echo "Iniciando build..."
-          sudo lb build --verbose 2>&1
-          echo "Build finalizado."
+          echo "=== 6. Rodar o lb build ==="
+          lb build --verbose 2>&1
+          echo "Build finalizado com sucesso dentro do container."
+          CONTAINER_SCRIPT
+
+          # Dá permissão de execução no script hospedeiro
+          chmod +x run_build.sh
+
+          # PULO DO GATO: Subir o docker do Debian Bookworm mapeando a pasta atual do host.
+          # Isso dá o ambiente puro do Debian sem herdar restrições do Ubuntu e usa o disco gigante do host!
+          sudo docker run --privileged --rm \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            debian:bookworm-slim /bin/bash -c "./run_build.sh"
 
       - name: 📦 Renomear ISO final
         run: |
