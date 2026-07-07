@@ -47,7 +47,7 @@ jobs:
           echo "=== 2. Preparar lista de pacotes ==="
           mkdir -p src/pacotes/
           cat > src/pacotes/lista_completa.txt << 'EOF'
-          # Sistema base e Inicialização Live USB (Adicionados para corrigir o Initramfs)
+          # Sistema base e Inicialização Live USB
           live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
           
           # Ferramentas básicas
@@ -96,6 +96,7 @@ jobs:
             --iso-publisher "FydelisTech" \
             --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid \
+            --debian-installer netinst \
             --cache-packages false \
             --apt-source-archives false
 
@@ -184,7 +185,7 @@ jobs:
           apt-get purge -y desktop-base || true
 
           echo "=== [Hook] Configurando Plymouth ==="
-          if [ -d /usr/share/plymouth/themes/fydel]; then
+          if [ -d /usr/share/plymouth/themes/fydel ]; then
           cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
           [Plymouth Theme]
           Name=FydelisTechOS Splash
