@@ -289,9 +289,21 @@ jobs:
             exit 1
           fi
 
-      - name: 💾 Salvar ISO como artefato
+      - name: 💾 Salvar ISO como artefato (Tentativa no GitHub)
         uses: actions/upload-artifact@v4
         with:
           name: FydelisTechOS-V1.0
           path: FydelisTechOS-V1.0.iso
-          retention-days: 30
+          retention-days: 1
+        continue-on-error: true
+
+      - name: 🌐 Rota Alternativa: Upload Externo (Bypass de Cota)
+        run: |
+          echo "=========================================================="
+          echo "=== Iniciando Upload de Segurança para o transfer.sh ==="
+          echo "=========================================================="
+          LINK_DOWNLOAD=$(curl --upload-file FydelisTechOS-V1.0.iso https://transfer.sh/FydelisTechOS-V1.0.iso)
+          echo "=========================================================="
+          echo "🚀 LINK DIRETO PARA BAIXAR SUA ISO AGORA:"
+          echo "$LINK_DOWNLOAD"
+          echo "=========================================================="
