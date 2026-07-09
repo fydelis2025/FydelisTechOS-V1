@@ -273,17 +273,18 @@ pty_loop:
     syscall
 
 .checar_mestre:
-    mov rcx, rbx
-    and rcx, 63             ; Pega o bit do fd_mestre (0 a 63)
+    ov rcx, rbx
+    and rcx, 63             ; Pega o bit do fd_mestre (0 a 63) - O valor está limpo em rcx!
     mov rdx, rbx
     shr rdx, 6              ; Divide por 64 para achar a qword
     shl rdx, 3              ; Multiplica por 8 (offset em bytes no stack)
     
-    ; --- CORREÇÃO COMPLETA: Isola o ponteiro complexo usando r10 ---
-    lea r10, [rsp + rdx]    ; Carrega o endereço exato da qword em r10
-    mov rax, [r10]          ; Copia o valor de 64 bits da memória para rax com segurança
+    ; Carrega o endereço exato da qword em r10 e joga para rax
+    lea r10, [rsp + rdx]    
+    mov rax, [r10]          
     
-    bt rax, cl              ; Testa se o bit do mestre está ativo
+    ; --- CORREÇÃO DO BT: Mudança de cl para rcx para validar a sintaxe x86_64 ---
+    bt rax, rcx              ; Testa se o bit do mestre está ativo usando o registrador correto
     jnc .loop_principal     ; Se não estiver pronto, volta para o topo do loop
 
     ; Ler do mestre
