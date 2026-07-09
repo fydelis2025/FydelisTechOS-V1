@@ -22,16 +22,16 @@ fydelterm: fydel_pty.o fydel_check.o fydel_gui.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 install: fydelterm
-	# Cria os diretórios necessários dentro do sistema de arquivos da ISO
+	# Cria os diretórios necessários dentro do sistema de arquivos da ISO (Casando com o /opt do build.yml)
 	install -d /usr/local/bin/
-	install -d /usr/share/fydel/telas/
+	install -d /opt/fydel/telas/
 	
 	# Instala o binário principal
 	install -m 755 fydelterm /usr/local/bin/
 	
 	# Cria um arquivo de boas-vindas padrão caso ele não exista no chroot
-	echo "--- FydelisTechOS Engine Ativa ---" > /usr/share/fydel/telas/tela_boas_vindas.txt
-	chmod 644 /usr/share/fydel/telas/tela_boas_vindas.txt
+	echo "--- FydelisTechOS Engine Ativa ---" > /opt/fydel/telas/tela_boas_vindas.txt
+	chmod 644 /opt/fydel/telas/tela_boas_vindas.txt
 
 clean:
 	rm -f *.o fydelterm
