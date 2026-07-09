@@ -227,10 +227,15 @@ pty_loop:
     and rcx, 63
     mov rax, 1
     shl rax, cl
+    
     mov rdx, rbx
     shr rdx, 6
     shl rdx, 3
-    or [rsp + rdx], rax
+    
+    ; --- CORREÇÃO DO OR: Uso de registrador intermediário r10 para evitar combinação inválida ---
+    mov r10, [rsp + rdx]
+    or  r10, rax
+    mov [rsp + rdx], r10
 
     ; Chamar SYS_SELECT com timeout seguro para a automação do GitHub
     mov rdi, rbx
