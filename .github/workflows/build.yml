@@ -288,24 +288,18 @@ jobs:
             exit 1
           fi
 
-      - name: 🌐 Upload da ISO para Servidores de Alta Capacidade (Bypass de RAM e Cota)
+     - name: 🌐 Upload da ISO para Servidores de Alta Capacidade (Bypass de RAM e Cota)
         run: |
           echo "=========================================================="
-          echo "=== Tentando Rota 1: Gofile.io (Sem Limite de Tamanho) ==="
+          echo "=== Tentando Rota 1: Transfer.sh (Streaming via PUT) ==="
           echo "=========================================================="
-          # Obtém o melhor servidor disponível no Gofile
-          SERVER=$(curl -s https://api.gofile.io/contents/getUploadServer | grep -o '"server":"[^"]*' | grep -o '[^"]*$')
-          if [ ! -z "$SERVER" ]; then
-            echo "Enviando para o servidor: $SERVER"
-            curl -F "file=@FydelisTechOS-V1.0.iso" "https://${SERVER}.gofile.io/contents/uploadfile"
-          else
-            echo "❌ Não foi possível obter servidor do Gofile."
-          fi
+          # O parâmetro -T faz streaming chunk por chunk e o endpoint /v1 do transfer é específico para automações
+          curl -T FydelisTechOS-V1.0.iso https://transfer.sh/FydelisTechOS-V1.0.iso || true
 
           echo -e "\n=========================================================="
           echo "=== Tentando Rota 2: O.sh / Osh.at (Streaming Direto) ==="
           echo "=========================================================="
-          # O parâmetro -T faz streaming chunk por chunk, gastando zero de RAM
+          # Streaming direto ponto a ponto
           curl -T FydelisTechOS-V1.0.iso https://osh.at/FydelisTechOS-V1.0.iso || true
           echo "=========================================================="
 
