@@ -288,19 +288,25 @@ jobs:
             exit 1
           fi
 
-      - name: 🌐 Upload da ISO para Servidores Externos (Bypass de Cota)
+      - name: 🌐 Upload da ISO para Servidores de Alta Capacidade (Bypass de RAM e Cota)
         run: |
           echo "=========================================================="
-          echo "=== Tentando Rota 1: BashUpload (Até 50GB) ==="
+          echo "=== Tentando Rota 1: Gofile.io (Sem Limite de Tamanho) ==="
           echo "=========================================================="
-          # O BashUpload retorna o link direto no terminal
-          curl -X POST https://bashupload.com/FydelisTechOS-V1.0.iso --data-binary @FydelisTechOS-V1.0.iso || true
-          
+          # Obtém o melhor servidor disponível no Gofile
+          SERVER=$(curl -s https://api.gofile.io/contents/getUploadServer | grep -o '"server":"[^"]*' | grep -o '[^"]*$')
+          if [ ! -z "$SERVER" ]; then
+            echo "Enviando para o servidor: $SERVER"
+            curl -F "file=@FydelisTechOS-V1.0.iso" "https://${SERVER}.gofile.io/contents/uploadfile"
+          else
+            echo "❌ Não foi possível obter servidor do Gofile."
+          fi
+
+          echo -e "\n=========================================================="
+          echo "=== Tentando Rota 2: O.sh / Osh.at (Streaming Direto) ==="
           echo "=========================================================="
-          echo "=== Tentando Rota 2: Pixeldrain (Alternativa Rápida) ==="
-          echo "=========================================================="
-          # Pixeldrain é excelente e cospe o JSON com o link na tela
-          curl -T FydelisTechOS-V1.0.iso https://pixeldrain.com/api/file/ || true
+          # O parâmetro -T faz streaming chunk por chunk, gastando zero de RAM
+          curl -T FydelisTechOS-V1.0.iso https://osh.at/FydelisTechOS-V1.0.iso || true
           echo "=========================================================="
 
       - name: 💾 Salvar no GitHub
