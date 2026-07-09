@@ -73,7 +73,7 @@ jobs:
           firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
           
           # Discos e armazenamento
-          gparted rounded parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
+          gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
           
           # Segurança (Pentest)
           wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
