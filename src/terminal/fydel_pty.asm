@@ -274,13 +274,17 @@ pty_loop:
 
 .checar_mestre:
     mov rcx, rbx
-    and rcx, 63
+    and rcx, 63             ; Pega o bit do fd_mestre (0 a 63)
     mov rdx, rbx
-    shr rdx, 6
-    shl rdx, 3
-    mov rax, qword [rsp + rdx]
-    bt rax, cl
-    jnc .loop_principal
+    shr rdx, 6              ; Divide por 64 para achar a qword
+    shl rdx, 3              ; Multiplica por 8 (offset em bytes no stack)
+    
+    ; --- CORREÇÃO COMPLETA: Isola o ponteiro complexo usando r10 ---
+    lea r10, [rsp + rdx]    ; Carrega o endereço exato da qword em r10
+    mov rax, [r10]          ; Copia o valor de 64 bits da memória para rax com segurança
+    
+    bt rax, cl              ; Testa se o bit do mestre está ativo
+    jnc .loop_principal     ; Se não estiver pronto, volta para o topo do loop
 
     ; Ler do mestre
     mov rax, SYS_READ
