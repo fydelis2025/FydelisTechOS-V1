@@ -289,18 +289,13 @@ jobs:
             exit 1
           fi
 
-      - name: 🌐 Rota Alternativa: Upload Externo Primeiro (Bypass de Cota)
+      - name: 🌐 Upload Externo Primeiro
         run: |
-          echo "=========================================================="
-          echo "=== Iniciando Upload de Segurança para o transfer.sh ==="
-          echo "=========================================================="
+          echo "=== Iniciando Upload Externo ==="
           LINK_DOWNLOAD=$(curl --upload-file FydelisTechOS-V1.0.iso https://transfer.sh/FydelisTechOS-V1.0.iso)
-          echo "=========================================================="
-          echo "🚀 LINK DIRETO PARA BAIXAR SUA ISO AGORA:"
-          echo "$LINK_DOWNLOAD"
-          echo "=========================================================="
+          echo "🚀 LINK PARA DOWNLOAD: $LINK_DOWNLOAD"
 
-      - name: 💾 Salvar ISO como artefato (Tentativa Secundária no GitHub)
+      - name: 💾 Salvar no GitHub
         uses: actions/upload-artifact@v4
         with:
           name: FydelisTechOS-V1.0
