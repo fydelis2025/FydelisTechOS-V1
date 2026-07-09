@@ -11,9 +11,9 @@ PASS_USUARIO=$(openssl passwd -6 "Usuario2026!")
 groupadd -f fydel-admin
 groupadd -f fydel-users
 
-# Usuário ADMIN (Corrigido: Adicionado grupo tty)
+# Usuário ADMIN (Corrigido: Adicionado grupo tty e corrigido storage para plugdev)
 if ! id -u admin &>/dev/null; then
-    useradd -m -g fydel-admin -G sudo,adm,tty,netdev,storage,video,audio,bluetooth \
+    useradd -m -g fydel-admin -G sudo,adm,tty,netdev,plugdev,video,audio,bluetooth \
         -c "Administrador Fydelistechos" -s /usr/local/bin/fydelterm \
         -p "$PASS_ADMIN" admin
     echo "✅ Usuário admin criado e associado ao grupo TTY"
