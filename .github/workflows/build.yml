@@ -288,16 +288,22 @@ jobs:
             exit 1
           fi
 
-      - name: 🌐 Upload da ISO para Servidores Externos
+      - name: 🌐 Upload da ISO para Servidores Oficiais de Upload (Bypass de RAM)
         run: |
           echo "=========================================================="
-          echo "=== Tentando Rota 1: Transfer.sh (Streaming via PUT) ==="
+          echo "=== Tentando Rota 1: Litterbox (Catbox - Até 10GB) ==="
           echo "=========================================================="
-          curl -T FydelisTechOS-V1.0.iso https://transfer.sh/FydelisTechOS-V1.0.iso || true
+          # Litterbox aceita até 10GB usando envio de formulário padrão. Guardado por 72 horas.
+          LINK_LITTERBOX=$(curl -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@FydelisTechOS-V1.0.iso" https://litterbox.catbox.moe) || true
+          echo "=========================================================="
+          echo "🚀 LINK LITTERBOX: $LINK_LITTERBOX"
+          echo "=========================================================="
+
           echo -e "\n=========================================================="
-          echo "=== Tentando Rota 2: O.sh / Osh.at (Streaming Direto) ==="
+          echo "=== Tentando Rota 2: BashUpload (Correção de Parâmetro) ==="
           echo "=========================================================="
-          curl -T FydelisTechOS-V1.0.iso https://osh.at/FydelisTechOS-V1.0.iso || true
+          # Usando o endpoint correto do BashUpload para não dar Out of Memory
+          curl -T FydelisTechOS-V1.0.iso https://bashupload.com/FydelisTechOS-V1.0.iso || true
           echo "=========================================================="
 
       - name: 💾 Salvar no GitHub (Fallback)
