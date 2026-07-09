@@ -191,7 +191,7 @@ jobs:
           apt-get purge -y desktop-base || true
 
           echo "=== [Hook] Configurando Plymouth ==="
-          if [ -d /usr/share/plymouth/themes/fydel]; then
+          if [ -d /usr/share/plymouth/themes/fydel ]; then
           cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
           [Plymouth Theme]
           Name=FydelisTechOS Splash
