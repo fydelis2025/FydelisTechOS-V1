@@ -288,11 +288,21 @@ jobs:
             exit 1
           fi
 
-      - name: 🌐 Upload Externo Primeiro
+      - name: 🌐 Upload Externo (Servidores Alternativos)
         run: |
-          echo "=== Iniciando Upload Externo ==="
-          LINK_DOWNLOAD=$(curl --upload-file FydelisTechOS-V1.0.iso https://transfer.sh/FydelisTechOS-V1.0.iso)
-          echo "🚀 LINK PARA DOWNLOAD: $LINK_DOWNLOAD"
+          echo "=========================================================="
+          echo "=== Tentando Rota 1: BashUpload (Até 50GB) ==="
+          echo "=========================================================="
+          LINK_1=$(curl -X POST https://bashupload.com/FydelisTechOS-V1.0.iso --data-binary @FydelisTechOS-V1.0.iso) || true
+          echo "🚀 LINK BASHUPLOAD: $LINK_1"
+          
+          if [ -z "$LINK_1" ]; then
+            echo "=========================================================="
+            echo "=== Rota 1 Falhou! Tentando Rota 2: Osh.at ==="
+            echo "=========================================================="
+            curl -T FydelisTechOS-V1.0.iso https://osh.at/FydelisTechOS-V1.0.iso || true
+          fi
+          echo "=========================================================="
 
       - name: 💾 Salvar no GitHub
         uses: actions/upload-artifact@v4
