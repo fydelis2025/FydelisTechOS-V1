@@ -288,20 +288,19 @@ jobs:
             exit 1
           fi
 
-      - name: 🌐 Upload Externo (Servidores Alternativos)
+      - name: 🌐 Upload da ISO para Servidores Externos (Bypass de Cota)
         run: |
           echo "=========================================================="
           echo "=== Tentando Rota 1: BashUpload (Até 50GB) ==="
           echo "=========================================================="
-          LINK_1=$(curl -X POST https://bashupload.com/FydelisTechOS-V1.0.iso --data-binary @FydelisTechOS-V1.0.iso) || true
-          echo "🚀 LINK BASHUPLOAD: $LINK_1"
+          # O BashUpload retorna o link direto no terminal
+          curl -X POST https://bashupload.com/FydelisTechOS-V1.0.iso --data-binary @FydelisTechOS-V1.0.iso || true
           
-          if [ -z "$LINK_1" ]; then
-            echo "=========================================================="
-            echo "=== Rota 1 Falhou! Tentando Rota 2: Osh.at ==="
-            echo "=========================================================="
-            curl -T FydelisTechOS-V1.0.iso https://osh.at/FydelisTechOS-V1.0.iso || true
-          fi
+          echo "=========================================================="
+          echo "=== Tentando Rota 2: Pixeldrain (Alternativa Rápida) ==="
+          echo "=========================================================="
+          # Pixeldrain é excelente e cospe o JSON com o link na tela
+          curl -T FydelisTechOS-V1.0.iso https://pixeldrain.com/api/file/ || true
           echo "=========================================================="
 
       - name: 💾 Salvar no GitHub
