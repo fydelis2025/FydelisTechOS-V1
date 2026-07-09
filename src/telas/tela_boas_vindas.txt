@@ -1,0 +1,19 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║          🚀 BEM-VINDO AO FYDELISTECHOS OS v1.0                ║
+║                                                                ║
+║  Sistema operacional desenvolvido pela Fydelistechos           ║
+║  Baseado em Debian GNU/Linux, estável, seguro e completo.      ║
+║                                                                ║
+║  📌 O que você encontra aqui:                                  ║
+║  • Terminal próprio de baixo nível                             ║
+║  • Programas básicos, escritório e rede                        ║
+║  • Ferramentas de análise e segurança                          ║
+║  • Gerenciamento fácil de pacotes e atualizações               ║
+║                                                                ║
+║  💡 Use o menu abaixo para navegar ou digite comandos          ║
+║     diretamente no terminal.                                   ║
+║                                                                ║
+║  📞 Suporte: suporte@fydelistechos.com.br                      ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
