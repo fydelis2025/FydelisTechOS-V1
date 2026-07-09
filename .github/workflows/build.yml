@@ -78,7 +78,7 @@ jobs:
           python3 python3-pip python3-requests
           
           # Compilação
-          build-essential nasm gcc g++ make
+          build-essential nasm gcc g++ make libutil-dev
           EOF
 
           echo "=== 3. Configurar Live Build ==="
@@ -100,13 +100,14 @@ jobs:
             --cache-packages false \
             --apt-source-archives false
 
-          echo "=== 4. Copiar lista de pacotes e arquivos ==="
+          echo "=== 4. Estruturar Diretórios do Chroot e Binary ==="
           mkdir -p config/package-lists/
           cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
+          # Criar pastas para receber os binários, scripts e assets visuais
           mkdir -p config/includes.chroot/usr/local/bin/
           mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
-          mkdir -p config/includes.chroot/boot/grub/
+          mkdir -p config/includes.chroot/boot/grub/themes/grub-theme-fydel/
           mkdir -p config/includes.chroot/usr/share/icons/fydel/
           mkdir -p config/includes.chroot/etc/systemd/system/
           mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
@@ -116,24 +117,33 @@ jobs:
           mkdir -p config/bootloaders/grub/
           mkdir -p config/includes.binary/boot/grub/
           
+          # Copiar fontes do terminal C++/Assembly
           if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
             cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
           fi
           
+          # Copiar scripts internos de utilitários e instalação
           [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
           [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
           [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
           [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
           
-          if [ -d "src/sistema/grub" ] && [ "$(ls -A src/sistema/grub 2>/dev/null)" ]; then
-            cp -r src/sistema/grub/* config/includes.chroot/boot/grub/
-          fi
+          # --- ACOPLANDO O TEMA VISUAL DO GRUB COM IMAGENS ---
+          [ -f "./theme.txt" ] && cp ./theme.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
+          [ -f "./colors.txt" ] && cp ./colors.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
           
-          if [ -f "src/sistema/grub/grub-theme-fydel/splash.png" ]; then
-            cp src/sistema/grub/grub-theme-fydel/splash.png config/bootloaders/grub/splash.png
-            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.binary/boot/grub/splash.png
+          GRUB_ASSETS="src/sistema/grub/grub-theme-fydel"
+          if [ -d "$GRUB_ASSETS" ]; then
+            [ -f "$GRUB_ASSETS/background.png" ] && cp "$GRUB_ASSETS/background.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
+            [ -f "$GRUB_ASSETS/logo.png" ] && cp "$GRUB_ASSETS/logo.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
+            [ -f "$GRUB_ASSETS/splash.png" ] && cp "$GRUB_ASSETS/splash.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
+            [ -f "$GRUB_ASSETS/grub.png" ] && cp "$GRUB_ASSETS/grub.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
+            
+            # Seta os splash e backgrounds padrões do instalador e Plymouth
+            cp "$GRUB_ASSETS/splash.png" config/bootloaders/grub/splash.png
+            cp "$GRUB_ASSETS/splash.png" config/includes.binary/boot/grub/splash.png
             mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
-            cp src/sistema/grub/grub-theme-fydel/splash.png config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
+            cp "$GRUB_ASSETS/splash.png" config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
           fi
           
           if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
@@ -150,10 +160,6 @@ jobs:
           
           if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
             cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
-          fi
-          
-          if [ -d "src/iso" ] && [ "$(ls -A src/iso 2>/dev/null)" ]; then
-            cp -r src/iso/* config/includes.chroot/opt/fydel/iso/
           fi
           
           chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
@@ -197,7 +203,7 @@ jobs:
           ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
           PLY
           
-                    cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
+          cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
           wallpaper_image = Image("background.png");
           screen_width = Window.GetWidth();
           screen_height = Window.GetHeight();
@@ -206,16 +212,18 @@ jobs:
           wallpaper_sprite.SetZ(-10);
           SCR
 
-            plymouth-set-default-theme fydel || true
+          plymouth-set-default-theme fydel || true
           fi
 
-          echo "=== [Hook] Configurando GRUB com parametros universais ==="
+          echo "=== [Hook] Configurando GRUB com parâmetros universais ==="
           if [ -f /etc/default/grub ]; then
             sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nomodeset video=efifb:off"/' /etc/default/grub
+            sed -i 's/#GRUB_GFXMODE=.*/GRUB_GFXMODE=1024x768,auto/' /etc/default/grub
+            echo 'GRUB_THEME="/boot/grub/themes/grub-theme-fydel/theme.txt"' >> /etc/default/grub
             update-grub || true
           fi
 
-          echo "=== [Hook] Compilando Terminal Híbrido ==="
+          echo "=== [Hook] Compilando Terminal Híbrido Fydel ==="
           if [ -d /usr/local/src/fydel-terminal ]; then
             cd /usr/local/src/fydel-terminal
             make clean && make
@@ -227,9 +235,15 @@ jobs:
           chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
           chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
 
+          # Links simbólicos operacionais do sistema Live
           ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
           ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
           ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
+
+          # Roda o script de usuários corrigido para injetar os grupos de TTY de fábrica
+          if [ -f /usr/local/bin/usuarios_permissoes.sh ]; then
+            bash /usr/local/bin/usuarios_permissoes.sh
+          fi
 
           if [ -f /etc/systemd/system/fydelterm.service ]; then
             systemctl daemon-reload
@@ -251,6 +265,8 @@ jobs:
           sudo docker run --privileged --rm \
             -v "$GITHUB_WORKSPACE:/workspace" \
             -w /workspace \
+            -v /dev:/dev \
+            -v /dev/pts:/dev/pts \
             debian:bookworm-slim /bin/bash -c "./run_build.sh"
 
       - name: 📦 Renomear ISO final
