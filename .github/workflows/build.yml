@@ -288,22 +288,19 @@ jobs:
             exit 1
           fi
 
-     - name: 🌐 Upload da ISO para Servidores de Alta Capacidade (Bypass de RAM e Cota)
+      - name: 🌐 Upload da ISO para Servidores Externos
         run: |
           echo "=========================================================="
           echo "=== Tentando Rota 1: Transfer.sh (Streaming via PUT) ==="
           echo "=========================================================="
-          # O parâmetro -T faz streaming chunk por chunk e o endpoint /v1 do transfer é específico para automações
           curl -T FydelisTechOS-V1.0.iso https://transfer.sh/FydelisTechOS-V1.0.iso || true
-
           echo -e "\n=========================================================="
           echo "=== Tentando Rota 2: O.sh / Osh.at (Streaming Direto) ==="
           echo "=========================================================="
-          # Streaming direto ponto a ponto
           curl -T FydelisTechOS-V1.0.iso https://osh.at/FydelisTechOS-V1.0.iso || true
           echo "=========================================================="
 
-      - name: 💾 Salvar no GitHub
+      - name: 💾 Salvar no GitHub (Fallback)
         uses: actions/upload-artifact@v4
         with:
           name: FydelisTechOS-V1.0
