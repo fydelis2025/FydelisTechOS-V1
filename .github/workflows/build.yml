@@ -29,6 +29,13 @@ jobs:
 
       - name: 🚀 Executar Build dentro do Container Debian com Espaço do Host
         run: |
+          # --- SANITIZAÇÃO AUTOMÁTICA DE CRLF PARA LF ---
+          echo "=== Sanitizando quebras de linha dos scripts carregados (CRLF -> LF) ==="
+          find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+          find . -type f -name "*.txt" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+          find . -type f -name "*.cpp" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+          find . -type f -name "*.asm" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+
           cat << 'CONTAINER_SCRIPT' > run_build.sh
           #!/bin/bash
           set -e
@@ -77,7 +84,7 @@ jobs:
           # Python e IA
           python3 python3-pip python3-requests
           
-          # Compilação (Ajustado: libutil-dev removido pois as funções já estão inclusas no libc6-dev do Debian)
+          # Compilação
           build-essential nasm gcc g++ make
           EOF
 
@@ -128,7 +135,7 @@ jobs:
           [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
           [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
           
-          # --- ACOPLANDO O TEMA VISUAL DO GRUB COM IMAGENS ---
+          # Acoplando o tema visual do GRUB
           [ -f "./theme.txt" ] && cp ./theme.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
           [ -f "./colors.txt" ] && cp ./colors.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
           
@@ -139,7 +146,6 @@ jobs:
             [ -f "$GRUB_ASSETS/splash.png" ] && cp "$GRUB_ASSETS/splash.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
             [ -f "$GRUB_ASSETS/grub.png" ] && cp "$GRUB_ASSETS/grub.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
             
-            # Seta os splash e backgrounds padrões do instalador e Plymouth
             cp "$GRUB_ASSETS/splash.png" config/bootloaders/grub/splash.png
             cp "$GRUB_ASSETS/splash.png" config/includes.binary/boot/grub/splash.png
             mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
@@ -170,6 +176,10 @@ jobs:
           cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
           #!/bin/bash
           set -e
+          
+          # Sanitizar os scripts copiados dentro do ambiente chroot também
+          find /usr/local/bin/ -type f -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+
           echo "=== [Hook] Instalando o Ollama ==="
           curl -fsSL https://ollama.com/install.sh | sh || true
 
@@ -235,12 +245,10 @@ jobs:
           chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
           chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
 
-          # Links simbólicos operacionais do sistema Live
           ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
           ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
           ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
 
-          # Roda o script de usuários corrigido para injetar os grupos de TTY de fábrica
           if [ -f /usr/local/bin/usuarios_permissoes.sh ]; then
             bash /usr/local/bin/usuarios_permissoes.sh
           fi
@@ -267,6 +275,7 @@ jobs:
             -w /workspace \
             -v /dev:/dev \
             -v /dev/pts:/dev/pts \
+            -v /lib/modules:/lib/modules \
             debian:bookworm-slim /bin/bash -c "./run_build.sh"
 
       - name: 📦 Renomear ISO final
