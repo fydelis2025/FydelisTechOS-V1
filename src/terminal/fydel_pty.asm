@@ -210,7 +210,7 @@ pty_loop:
     push rbp
     mov rbp, rsp
     push rbx
-    sub rsp, 4112           ; Aloca espaço no stack para buffer e fd_set
+    sub rsp, 4112           ; Aloca espaco no stack para buffer e fd_set
 
     mov rbx, rdi            ; rbx = fd_mestre
 
@@ -232,12 +232,13 @@ pty_loop:
     shr rdx, 6
     shl rdx, 3
     
-    ; --- CORREÇÃO DO OR: Uso de registrador intermediário r10 para evitar combinação inválida ---
-    mov r10, [rsp + rdx]
-    or  r10, rax
-    mov [rsp + rdx], r10
+    ; Correcao do OR usando r10 intermediario
+    lea r10, [rsp + rdx]
+    mov r11, [r10]
+    or  r11, rax
+    mov [r10], r11
 
-    ; Chamar SYS_SELECT com timeout seguro para a automação do GitHub
+    ; Chamar SYS_SELECT com timeout seguro para a automacao
     mov rdi, rbx
     inc rdi                 ; nfds = fd_mestre + 1
     mov rsi, rsp
@@ -249,7 +250,7 @@ pty_loop:
 
     cmp rax, 0
     jl .fim                 ; Se erro real, sai do loop
-    je .loop_principal      ; Se deu timeout sem dados, apenas repensa o loop (Evita travamento)
+    je .loop_principal      ; Se deu timeout, repensa o loop
 
     ; Verificar STDIN
     mov rax, [rsp]
@@ -273,19 +274,19 @@ pty_loop:
     syscall
 
 .checar_mestre:
-    ov rcx, rbx
-    and rcx, 63             ; Pega o bit do fd_mestre (0 a 63) - O valor está limpo em rcx!
+    mov rcx, rbx
+    and rcx, 63             ; Pega o bit do fd_mestre (0 a 63)
     mov rdx, rbx
     shr rdx, 6              ; Divide por 64 para achar a qword
     shl rdx, 3              ; Multiplica por 8 (offset em bytes no stack)
     
-    ; Carrega o endereço exato da qword em r10 e joga para rax
+    ; Isola o ponteiro complexo usando r10
     lea r10, [rsp + rdx]    
     mov rax, [r10]          
     
-    ; --- CORREÇÃO DO BT: Mudança de cl para rcx para validar a sintaxe x86_64 ---
-    bt rax, rcx              ; Testa se o bit do mestre está ativo usando o registrador correto
-    jnc .loop_principal     ; Se não estiver pronto, volta para o topo do loop
+    ; Correcao estrita do BT para x86_64 usando rcx completo
+    bt rax, rcx             
+    jnc .loop_principal     
 
     ; Ler do mestre
     mov rax, SYS_READ
@@ -296,7 +297,7 @@ pty_loop:
     cmp rax, 0
     jle .fim
 
-    ; Escrever na saída padrão (STDOUT)
+    ; Escrever na saida padrao (STDOUT)
     mov rdx, rax
     mov rax, SYS_WRITE
     mov rdi, STDOUT
