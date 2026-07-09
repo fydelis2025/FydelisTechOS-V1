@@ -278,7 +278,7 @@ pty_loop:
     mov rdx, rbx
     shr rdx, 6
     shl rdx, 3
-    mov rax, [rsp + rdx]
+    mov rax, qword [rsp + rdx]
     bt rax, cl
     jnc .loop_principal
 
