@@ -77,8 +77,8 @@ jobs:
           # Python e IA
           python3 python3-pip python3-requests
           
-          # Compilação
-          build-essential nasm gcc g++ make libutil-dev
+          # Compilação (Ajustado: libutil-dev removido pois as funções já estão inclusas no libc6-dev do Debian)
+          build-essential nasm gcc g++ make
           EOF
 
           echo "=== 3. Configurar Live Build ==="
@@ -191,7 +191,7 @@ jobs:
           apt-get purge -y desktop-base || true
 
           echo "=== [Hook] Configurando Plymouth ==="
-          if [ -d /usr/share/plymouth/themes/fydel ]; then
+          if [ -d /usr/share/plymouth/themes/fydel]; then
           cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
           [Plymouth Theme]
           Name=FydelisTechOS Splash
