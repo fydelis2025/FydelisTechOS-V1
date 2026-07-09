@@ -236,8 +236,7 @@ jobs:
           echo "=== [Hook] Compilando Terminal Híbrido Fydel ==="
           if [ -d /usr/local/src/fydel-terminal ]; then
             cd /usr/local/src/fydel-terminal
-            make clean && make
-            cp fydelterm /usr/local/bin/ 2>/dev/null || true
+            make clean && make && make install
           fi
 
           chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
