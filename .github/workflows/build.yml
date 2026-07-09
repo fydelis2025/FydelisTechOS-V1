@@ -73,7 +73,7 @@ jobs:
           firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
           
           # Discos e armazenamento
-          gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
+          gparted rounded parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
           
           # Segurança (Pentest)
           wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
@@ -289,15 +289,7 @@ jobs:
             exit 1
           fi
 
-      - name: 💾 Salvar ISO como artefato (Tentativa no GitHub)
-        uses: actions/upload-artifact@v4
-        with:
-          name: FydelisTechOS-V1.0
-          path: FydelisTechOS-V1.0.iso
-          retention-days: 1
-        continue-on-error: true
-
-      - name: 🌐 Rota Alternativa: Upload Externo (Bypass de Cota)
+      - name: 🌐 Rota Alternativa: Upload Externo Primeiro (Bypass de Cota)
         run: |
           echo "=========================================================="
           echo "=== Iniciando Upload de Segurança para o transfer.sh ==="
@@ -307,3 +299,11 @@ jobs:
           echo "🚀 LINK DIRETO PARA BAIXAR SUA ISO AGORA:"
           echo "$LINK_DOWNLOAD"
           echo "=========================================================="
+
+      - name: 💾 Salvar ISO como artefato (Tentativa Secundária no GitHub)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FydelisTechOS-V1.0
+          path: FydelisTechOS-V1.0.iso
+          retention-days: 1
+        continue-on-error: true
