@@ -1,8 +1,8 @@
+# FYDELISDORK
 
-            # FYDELISDORK   v 3 . 0   P R O
-                    FydelisTechos © 2026
-   # Ferramenta Profissional de Google Dorks & OSINT
-   # USO EXCLUSIVO PARA ESTUDO E PESQUISA DE DADOS PÚBLICOS
+ Ferramenta Profissional de Google Dorks & OSINT
+ 
+ USO EXCLUSIVO PARA ESTUDO E PESQUISA DE DADOS PÚBLICOS
 
 
 # O que é?
