@@ -1,7 +1,15 @@
 # FydelisTechOS-V1
+
+# Manual Oficial — FydelisTechOS © 2026
+Bem-vindo ao manual oficial do FydelisTechOS, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema, integrando o ecossistema proprietário de ferramentas de pentest desenvolvido do zero para autonomia operacional total.
+
+# O Propósito do Sistema
+
+O FydelisTechOS nasce da necessidade de soberania técnica. Em vez de depender de pacotes de terceiros e atualizações externas que podem falhar no momento crítico de uma auditoria, este sistema entrega uma suíte completa de utilitários em Perl (FydelisBrute, FydelisScan, FydelisDir, FydelisHash, FydelisWordlist) sob o seu total controle. Se o cenário exigir ir ao "gargalo" e reescrever a lógica, a ferramenta é sua e o código está nas suas mãos.
+
 # Guia do Usuário - FydelisTechOS v1.0
 
-Bem-vindo ao manual oficial do **FydelisTechOS**, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema.
+Bem-vindo ao manual oficial do **FydelisTechOS**, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema, com sistema de pentest próprio para uso.
 
 ---
 
