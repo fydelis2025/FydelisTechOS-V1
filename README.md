@@ -1,11 +1,11 @@
 # FydelisTechOS-V1
-# 📘 Guia do Usuário - FydelisTechOS v1.0
+# Guia do Usuário - FydelisTechOS v1.0
 
 Bem-vindo ao manual oficial do **FydelisTechOS**, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema.
 
 ---
 
-## 🚀 1. Primeiro Boot e Inicialização
+## 1. Primeiro Boot e Inicialização
 
 Ao ligar o computador com o FydelisTechOS, você passará pelas seguintes etapas visuais:
 
@@ -13,7 +13,7 @@ Ao ligar o computador com o FydelisTechOS, você passará pelas seguintes etapas
 2. **Tela Splash**: Uma animação em alta definição na cor roxa informando o carregamento dos módulos do sistema.
 3. **Prompt de Autenticação**: O sistema solicitará as credenciais de acesso para garantir a segurança dos dados.
 
-### 👥 Perfis de Usuário Padrão (Ambiente Live/Instalado)
+### Perfis de Usuário Padrão (Ambiente Live/Instalado)
 * **Administrador (admin)**:
   * **Login**: `admin`
   * **Senha Padrão**: `FydelAdmin2026!`
@@ -25,7 +25,7 @@ Ao ligar o computador com o FydelisTechOS, você passará pelas seguintes etapas
 
 ---
 
-## 💻 2. Navegação na Interface Central (`fydelterm`)
+## 2. Navegação na Interface Central (`fydelterm`)
 
 O coração do FydelisTechOS é o seu terminal híbrido interativo executado no TTY1. Ele exibe o monitoramento de hardware em tempo real (CPU, RAM, Disco e Rede) e um menu numérico para disparar aplicações:
 
@@ -41,7 +41,7 @@ O coração do FydelisTechOS é o seu terminal híbrido interativo executado no 
 
 ---
 
-## 🛠️ Ferramentas da Suíte
+## Ferramentas da Suíte
 
 O ecossistema é composto por cinco ferramentas principais altamente otimizadas:
 
@@ -53,11 +53,11 @@ O ecossistema é composto por cinco ferramentas principais altamente otimizadas:
 
 ---
 
-## 📁 Arquitetura do Repositório
+## Arquitetura do Repositório
 
 O projeto segue um padrão estrito de separação de responsabilidades (`CLI`, `Config`, `Core/Engine`):
 
-## 📦 3. Gerenciamento de Software (`fydel-pkg`)
+## 3. Gerenciamento de Software (`fydel-pkg`)
 
 O sistema conta com o utilitário personalizado `fydel-pkg` para envelopar o poder do ecossistema `apt` de forma visual. Para usá-lo, selecione a opção `6` no menu principal ou execute `fydel-pkg` no terminal como root.
 
