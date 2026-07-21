@@ -1,5 +1,11 @@
 # FydelisTechOS-V1
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Debian](https://img.shields.io/badge/Debian-Bookworm-A81D13?logo=debian)](https://www.debian.org/)
+[![XFCE](https://img.shields.io/badge/Desktop-XFCE-0066CC?logo=xfce)](https://www.xfce.org/)
+[![Tools](https://img.shields.io/badge/Tools-161%2B-FF6B6B)](./config/package-lists/fydelistechos.list.chroot)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)](https://github.com/fydelistech/fydelistechos)
+
 # Manual Oficial — FydelisTechOS © 2026
 Bem-vindo ao manual oficial do FydelisTechOS, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema, integrando o ecossistema proprietário de ferramentas de pentest desenvolvido do zero para autonomia operacional total.
 
