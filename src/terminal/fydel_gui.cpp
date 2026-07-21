@@ -72,6 +72,9 @@ int main() {
     // Garante que o verde hacker continue ativo antes de passar o controle
     std::cout << COR_VERDE_CLI;
 
+    // Exemplo de envio de comando inicial para o PTY para acertar o terminal
+    write(fd_mestre, "export TERM=xterm-256color\n", 28);
+    
     // Passa o controle imediatamente para o bash interativo em Assembly (Direto ao PTY)
     pty_loop(fd_mestre);
 
