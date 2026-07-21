@@ -1,0 +1,8 @@
+=== FYDELIS SECURITY SCANNER v1.0.0 ===
+[*] Alvo: 127.0.0.1 (127.0.0.1)
+[*] Portas: 29 (21-27017)
+[*] Threads: 100 | Timeout: 0.3s
+
+[+] Porta 5900   | VNC            | RFB 003.008
+[+] Porta 135    | RPC            | N/A
+[+] Porta 445    | SMB            | N/A

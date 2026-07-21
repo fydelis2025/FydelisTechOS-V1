@@ -1,0 +1,8 @@
+# Gemfile
+source 'https://rubygems.org'
+#Autor do projeto Adiel Santos Fontes
+# Adicione aqui qualquer gem que você precise no futuro
+# Exemplo: gem 'colorize'
+# Exemplo: gem 'terminal-table'
+
+ruby '>= 2.7.0'
