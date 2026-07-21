@@ -35,7 +35,7 @@ O coração do FydelisTechOS é o seu terminal híbrido interativo executado no 
 * `[4]` **Gerenciador de Redes**: Interface CLI/GUI para conexão a redes Wi-Fi e Ethernet.
 * `[5]` **Painel de Controle**: Configurações de utilizadores, som, vídeo e hora.
 * `[6]` **Gerenciador de Pacotes FYDEL**: Instalação e remoção de softwares.
-* `[7]` **Ferramentas de Segurança**: Arsenal nativo de auditoria (Nmap, Wireshark, Metasploit, Hydra).
+* `[7]` **Ferramentas de Segurança**: Arsenal nativo de auditoria (Fydelisbrute, Wireshark, Metasploit, FydelisDir, FydelisHash, FydelisScan, FydelisWordlist).
 * `[8]` **Terminal de Comandos**: Abre um shell interativo Bash real clonado via pseudo-terminal (PTY) de baixo nível em Assembly.
 * `[0]` **Sair da Sessão**: Encerra a sessão atual com segurança.
 
