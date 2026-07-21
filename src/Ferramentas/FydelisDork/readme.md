@@ -17,51 +17,51 @@ Monta buscas avançadas (Google Dorks) para encontrar dados que já estão públ
 
 # OPÇÕES BÁSICAS:
 
-  -t, --termo TEXTO         🔍 Palavra ou frase principal (OBRIGATÓRIO se não usar -c)
+  -t, --termo TEXTO               🔍 Palavra ou frase principal (OBRIGATÓRIO se não usar -c)
   
-  -c, --categoria NOME      📂 Categoria pronta (admin | painel | sql | xss | info | docs | camera)
+  -c, --categoria NOME            📂 Categoria pronta (admin | painel | sql | xss | info | docs | camera)
   
-  -s, --site DOMINIO        🌐 Apenas em um site (ex: gov.br, com.br)
+  -s, --site DOMINIO              🌐 Apenas em um site (ex: gov.br, com.br)
   
-  -a, --arquivo TIPO        📄 Tipo de arquivo (pdf, doc, xls, sql, txt, php, zip, csv, json)
+  -a, --arquivo TIPO              📄 Tipo de arquivo (pdf, doc, xls, sql, txt, php, zip, csv, json)
   
-  -T, --titulo TEXTO        📝 Palavra no título da página
+  -T, --titulo TEXTO              📝 Palavra no título da página
   
-  -u, --url TEXTO           🔗 Palavra no endereço da página
+  -u, --url TEXTO                 🔗 Palavra no endereço da página
 
 # OPÇÕES AVANÇADAS:
 
-  -m, --motor MOTOR         🌍 Motor de busca (google | bing | duckduckgo | yandex | startpage | all)
+  -m, --motor MOTOR               🌍 Motor de busca (google | bing | duckduckgo | yandex | startpage | all)
   
-  -e, --excluir TEXTO       ❌ Palavra a EXCLUIR da busca
+  -e, --excluir TEXTO             ❌ Palavra a EXCLUIR da busca
   
-  -E, --exato               💬 Busca exata (aspas duplas)
+  -E, --exato                     💬 Busca exata (aspas duplas)
   
-  -o, --operador TIPO       🔗 Operador: AND | OR | - (exclusão)
+  -o, --operador TIPO             🔗 Operador: AND | OR | - (exclusão)
   
-  -d, --data "INI..FIM"     📅 Filtrar intervalo de datas
+  -d, --data "INI..FIM"           📅 Filtrar intervalo de datas
   
-  -n, --intensidade N       ⚡ 1=mínima | 2=média | 3=agressiva
+  -n, --intensidade N             ⚡ 1=mínima | 2=média | 3=agressiva
   
-  -l, --limite N            🔢 Limitar número de dorks gerados
+  -l, --limite N                  🔢 Limitar número de dorks gerados
 
 # SAÍDA E EXPORTAÇÃO:
 
-  -O, --salvar ARQUIVO      💾 Salvar as buscas geradas em arquivo
+  -O, --salvar ARQUIVO            💾 Salvar as buscas geradas em arquivo
   
-  -f, --formato FORMATO     📄 Formato: txt | html | json | csv | md (padrão: txt)
+  -f, --formato FORMATO           📄 Formato: txt | html | json | csv | md (padrão: txt)
   
-  -A, --abrir               🌐 Abrir links direto no navegador
+  -A, --abrir                     🌐 Abrir links direto no navegador
   
-  -v, --verbose             📣 Modo detalhado
+  -v, --verbose                   📣 Modo detalhado
   
-  -i, --interativo          🎮 Modo interativo (menu guiado passo a passo)
+  -i, --interativo                🎮 Modo interativo (menu guiado passo a passo)
 
 # OUTROS:
 
-  -H, --ajuda               📖 Esta tela de ajuda
+  -H, --ajuda                     📖 Esta tela de ajuda
   
-  -V, --versao              ℹ️ Mostrar versão
+  -V, --versao                    ℹ️ Mostrar versão
 
 # EXEMPLOS PRÁTICOS:
 
