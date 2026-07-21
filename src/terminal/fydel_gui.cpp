@@ -48,13 +48,13 @@ void exibir_boas_vindas() {
 int main() {
     // Inicializar PTY via Assembly de Baixo Nível
     if (pty_iniciar(&fd_mestre, &fd_escravo) != 0) {
-        std::cerr << COR_VERMELHO << "❌ Erro ao iniciar o terminal PTY nativo!\n" << COR_RESET;
+        std::cerr << COR_VERMELHO << " Erro ao iniciar o terminal PTY nativo!\n" << COR_RESET;
         return 1;
     }
 
     // Validação robusta de ambiente
     if (!verificar_drivers() || !verificar_montagem_pts() || !verificar_permissoes()) {
-        std::cerr << COR_VERMELHO << "❌ Verificação do ecossistema falhou! Abortando por segurança.\n" << COR_RESET;
+        std::cerr << COR_VERMELHO << " Verificação do ecossistema falhou! Abortando por segurança.\n" << COR_RESET;
         pty_fechar();
         return 1;
     }
@@ -64,7 +64,7 @@ int main() {
 
     // Mensagem de boas-vindas ao terminal direto
     std::cout << COR_ROXO << "┌────────────────────────────────────────────────────────┐\n";
-    std::cout << "│ " << COR_VERDE_CLI << " ⚡ FydelisTechOS Terminal Ativo & Seguro (PTY)       " << COR_ROXO << "│\n";
+    std::cout << "│ " << COR_VERDE_CLI << "  FydelisTechOS Terminal Ativo & Seguro (PTY)       " << COR_ROXO << "│\n";
     std::cout << "└────────────────────────────────────────────────────────┘\n\n" << COR_RESET;
     
     std::cout << COR_CINZA << "[+] Ambiente pronto. Digite 'exit' para encerrar a sessão.\n\n" << COR_RESET;
