@@ -11,7 +11,7 @@ use warnings;
 use Getopt::Long qw(:config no_ignore_case);
 use POSIX qw(strftime ceil);
 use Term::ANSIColor;
-use URI::Escape qw(uri_escape_utf8);
+use URI::Escape;
 use Cwd qw(abs_path);
 use File::Basename;
 use File::Spec;
@@ -28,16 +28,16 @@ my %CONFIG = (
     url          => '',
     salvar       => undef,
     abrir        => 0,
-    motor        => 'google',      # google | bing | duckduckgo | yandex | all
-    operador     => 'AND',         # AND | OR | - (exclusão)
-    exato        => 0,             # aspas duplas
-    categorias   => undef,         # lista | admin | painel | sql | xss | ...
-    excluir      => '',            # palavras a excluir
-    intervalo    => '',            # intervalo de datas
-    intensidade  => 1,             # 1=básico, 2=médio, 3=agressivo
-    limite       => 0,             # 0 = ilimitado
-    interativo   => 0,             # modo interativo
-    extrair_urls => 0,             # extrai URLs dos motores (se possível)
+    motor        => 'google',
+    operador     => 'AND',
+    exato        => 0,
+    categorias   => undef,
+    excluir      => '',
+    intervalo    => '',
+    intensidade  => 1,
+    limite       => 0,
+    interativo   => 0,
+    extrair_urls => 0,
     verbose      => 0,
 );
 
@@ -192,7 +192,7 @@ sub ajuda {
 ${C_WHITE}USO:${C_RESET}
     fydelisdork -t "TERMO" [OPÇÕES]
     fydelisdork -c CATEGORIA [OPÇÕES]
-    fydelisdork -i                        # Modo interativo
+    fydelisdork -i
 
 ${C_WHITE}OPÇÕES BÁSICAS:${C_RESET}
   -t, --termo TEXTO         ${C_YELLOW}Palavra ou frase principal${C_RESET}
@@ -203,43 +203,30 @@ ${C_WHITE}OPÇÕES BÁSICAS:${C_RESET}
   -u, --url TEXTO            ${C_YELLOW}Palavra na URL da página${C_RESET}
 
 ${C_WHITE}OPÇÕES AVANÇADAS:${C_RESET}
-  -m, --motor MOTOR          ${C_YELLOW}google | bing | duckduckgo | yandex | startpage | all (padrão: google)${C_RESET}
+  -m, --motor MOTOR          ${C_YELLOW}google | bing | duckduckgo | yandex | startpage | all${C_RESET}
   -e, --excluir TEXTO        ${C_YELLOW}Palavra a EXCLUIR da busca${C_RESET}
   -E, --exato                ${C_YELLOW}Busca exata (aspas duplas)${C_RESET}
-  -o, --operador TIPO        ${C_YELLOW}AND | OR | - (operador de exclusão)${C_RESET}
+  -o, --operador TIPO        ${C_YELLOW}AND | OR | -${C_RESET}
   -d, --data "INICIO..FIM"   ${C_YELLOW}Filtrar intervalo de datas${C_RESET}
-  -n, --intensidade N        ${C_YELLOW}1=mínimo | 2=médio | 3=agressivo (combina operadores)${C_RESET}
-  -l, --limite N             ${C_YELLOW}Limitar número de dorks gerados (0=ilimitado)${C_RESET}
+  -n, --intensidade N        ${C_YELLOW}1=mínimo | 2=médio | 3=agressivo${C_RESET}
+  -l, --limite N             ${C_YELLOW}Limitar número de dorks gerados${C_RESET}
 
 ${C_WHITE}SAÍDA E EXPORTAÇÃO:${C_RESET}
   -o, --salvar ARQUIVO       ${C_YELLOW}Salvar resultados em arquivo${C_RESET}
-  -f, --formato FORMATO      ${C_YELLOW}txt | html | json | csv | md (padrão: txt)${C_RESET}
-  -A, --abrir                ${C_YELLOW}Abrir links diretamente no navegador${C_RESET}
+  -f, --formato FORMATO      ${C_YELLOW}txt | html | json | csv | md${C_RESET}
+  -A, --abrir                ${C_YELLOW}Abrir links no navegador${C_RESET}
   -v, --verbose              ${C_YELLOW}Modo detalhado${C_RESET}
   -i, --interativo           ${C_YELLOW}Modo interativo (menu guiado)${C_RESET}
-  -x, --extrair              ${C_YELLOW}Tentar extrair URLs públicas dos resultados${C_RESET}
 
-${C_WHITE}EXEMPLOS DE USO:${C_RESET}
+${C_WHITE}EXEMPLOS:${C_RESET}
   ${C_GREEN}fydelisdork -t "segurança" -s exemplo.com -a pdf -o dorks.txt${C_RESET}
   ${C_GREEN}fydelisdork -c admin -s gov.br -f html -o admin_gov.html${C_RESET}
   ${C_GREEN}fydelisdork -c sql -n 3 -A -o sqli_dorks.txt${C_RESET}
   ${C_GREEN}fydelisdork -t "painel" -s com.br -u admin -i${C_RESET}
   ${C_GREEN}fydelisdork -c camera -m all -f json -o cameras.json${C_RESET}
-  ${C_GREEN}fydelisdork -t "backup" -e "wordpress" -l 10${C_RESET}
-  ${C_GREEN}fydelisdork -c docs -s gov.br -a pdf -o relatorios_gov.txt${C_RESET}
-  ${C_GREEN}fydelisdork -i${C_RESET}     # Entrar no menu interativo
+  ${C_GREEN}fydelisdork -i${C_RESET}
 
-${C_WHITE}CATEGORIAS DISPONÍVEIS:${C_RESET}
-  ${C_YELLOW}admin${C_RESET}     - Painéis administrativos, logins, áreas restritas
-  ${C_YELLOW}painel${C_RESET}    - Dashboards, controles, monitoramento
-  ${C_YELLOW}sql${C_RESET}       - Potenciais SQL injection (parâmetros em URL)
-  ${C_YELLOW}xss${C_RESET}       - Potenciais Cross-Site Scripting (parâmetros de busca)
-  ${C_YELLOW}info${C_RESET}      - Vazamento de informações (dir listing, backups)
-  ${C_YELLOW}docs${C_RESET}      - Documentos públicos sensíveis (PDF, DOC, XLS)
-  ${C_YELLOW}camera${C_RESET}    - Câmeras IP e webcams públicas
-
-${C_WHITE}  AVISO:${C_YELLOW} USO EXCLUSIVO PARA ESTUDO E PESQUISA DE DADOS PÚBLICOS${C_RESET}
-${C_YELLOW}  Respeite a Lei! Não utilize para acessar dados protegidos.${C_RESET}
+${C_WHITE}⚠  AVISO:${C_YELLOW} USO EXCLUSIVO PARA ESTUDO E PESQUISA DE DADOS PÚBLICOS${C_RESET}
 AJUDA
     exit 0;
 }
@@ -280,7 +267,7 @@ sub parse_args {
     );
 
     if (!$result) {
-        print "${C_RED}❌ Erro ao parsear argumentos. Use -H para ajuda.${C_RESET}\n";
+        print "${C_RED} Erro ao parsear argumentos. Use -H para ajuda.${C_RESET}\n";
         exit 1;
     }
 
@@ -310,66 +297,56 @@ sub parse_args {
     $CONFIG{interativo}  = $interativo;
     $CONFIG{extrair_urls}= $extrair;
 
-    # Validações do motor
     my @motores_validos = qw(google bing duckduckgo yandex startpage all);
     $CONFIG{motor} ||= 'google';
     unless (grep { $_ eq $CONFIG{motor} } @motores_validos) {
         die "${C_RED} Motor inválido: $CONFIG{motor}. Use: @motores_validos${C_RESET}\n";
     }
 
-    # Validações do operador
     $CONFIG{operador} ||= 'AND';
     unless ($CONFIG{operador} =~ /^(AND|OR|-)$/i) {
         die "${C_RED} Operador inválido. Use AND, OR ou -${C_RESET}\n";
     }
 
-    # Validações de intensidade
     $CONFIG{intensidade} ||= 1;
     $CONFIG{intensidade} = 1 if $CONFIG{intensidade} < 1;
     $CONFIG{intensidade} = 3 if $CONFIG{intensidade} > 3;
 
-    # Validações de formato
     $CONFIG{formato} = $formato if defined $formato;
     $CONFIG{formato} ||= 'txt';
     unless ($CONFIG{formato} =~ /^(txt|html|json|csv|md)$/i) {
-        die "${C_RED} Formato inválido. Use: txt, html, json, csv, md${C_RESET}\n";
+        die "${C_RED}❌ Formato inválido. Use: txt, html, json, csv, md${C_RESET}\n";
     }
     $CONFIG{formato} = lc($CONFIG{formato});
 
-    # Processar categoria
     if ($categoria) {
         my $cat = lc($categoria);
         unless (exists $CATEGORIAS{$cat}) {
-            die "${C_RED} Categoria '$cat' não encontrada. Disponíveis: " .
+            die "${C_RED}❌ Categoria '$cat' não encontrada. Disponíveis: " .
                 join(", ", sort keys %CATEGORIAS) . "${C_RESET}\n";
         }
         $CONFIG{categorias} = $cat;
-        $CONFIG{termo} ||= $cat;  # fallback
+        $CONFIG{termo} ||= $cat;
     }
 }
 
 # ────────────────────────────────────────────────────────────────
 #            G E R A D O R   D E   D O R K S
 # ────────────────────────────────────────────────────────────────
-
-# Gera dorks combinando termo + filtros
 sub gerar_dorks {
     my @dorks;
     my $termo = $CONFIG{termo} || '';
     my $site  = $CONFIG{site};
 
-    # Se tem categoria, usa ela
     if ($CONFIG{categorias}) {
         @dorks = @{$CATEGORIAS{$CONFIG{categorias}}};
 
-        # Aplica site se foi especificado
         if ($site) {
             for (my $i = 0; $i < @dorks; $i++) {
                 $dorks[$i] .= " site:$site";
             }
         }
 
-        # Se tem um termo adicional, combina
         if ($termo && $termo ne $CONFIG{categorias}) {
             for (my $i = 0; $i < @dorks; $i++) {
                 $dorks[$i] = "$termo $dorks[$i]";
@@ -377,15 +354,7 @@ sub gerar_dorks {
         }
 
     } else {
-        # Dork único a partir dos filtros manuais
         my $dork = $termo;
-
-        # Operador AND/OR
-        if ($CONFIG{operador} =~ /^(AND|OR)$/) {
-            # Já incluso implicitamente
-        } elsif ($CONFIG{operador} eq '-') {
-            # Exclusão
-        }
 
         $dork = "\"$dork\"" if $CONFIG{exato} && $dork !~ /^"/;
 
@@ -394,7 +363,6 @@ sub gerar_dorks {
         $dork .= " intitle:$CONFIG{titulo}"   if $CONFIG{titulo};
         $dork .= " inurl:$CONFIG{url}"        if $CONFIG{url};
 
-        # Exclusão
         if ($CONFIG{excluir}) {
             my @excluir = split(/[,\s]+/, $CONFIG{excluir});
             for my $ex (@excluir) {
@@ -404,7 +372,6 @@ sub gerar_dorks {
 
         push @dorks, $dork;
 
-        # Intensidade: gera variações
         if ($CONFIG{intensidade} >= 2 && $termo) {
             my $dork2 = $termo;
             $dork2 = "\"$dork2\"" if $CONFIG{exato};
@@ -414,7 +381,6 @@ sub gerar_dorks {
         }
 
         if ($CONFIG{intensidade} >= 3 && $termo) {
-            # Combinações extras
             my @extras = (
                 "inurl:$termo" . ($site ? " site:$site" : ""),
                 "intitle:\"$termo\"" . ($site ? " site:$site" : ""),
@@ -426,16 +392,13 @@ sub gerar_dorks {
         }
     }
 
-    # Remove duplicatas
     my %seen;
     @dorks = grep { !$seen{$_}++ } @dorks;
 
-    # Aplica limite
     if ($CONFIG{limite} > 0 && scalar @dorks > $CONFIG{limite}) {
         @dorks = @dorks[0 .. $CONFIG{limite}-1];
     }
 
-    # Embaralha um pouco para dar variedade
     @dorks = shuffle @dorks if $CONFIG{intensidade} >= 2;
 
     return @dorks;
@@ -446,7 +409,7 @@ sub gerar_dorks {
 # ────────────────────────────────────────────────────────────────
 sub construir_url_motor {
     my ($dork, $motor) = @_;
-    my $q = uri_escape_utf8($dork);
+    my $q = uri_escape($dork);
 
     my %urls = (
         google     => "https://www.google.com/search?q=$q",
@@ -463,14 +426,14 @@ sub construir_url_motor {
 #                  E X I B I Ç Ã O   N A   T E L A
 # ────────────────────────────────────────────────────────────────
 sub exibir_dorks {
-    my ($dorks_ref, $motores) = @_;
-    my @dorks = @$dorks_ref;
-    my @motores = @$motores;
+    my ($dorks_ref, $motores_ref) = @_;
+    my @dorks   = @$dorks_ref;
+    my @motores = @$motores_ref;
 
     print "\n";
     print "${C_CYAN}╔══════════════════════════════════════════════════════════════════════╗${C_RESET}\n";
     printf "${C_CYAN}║${C_WHITE} %-66s ${C_CYAN}║${C_RESET}\n",
-        " DORKS GERADOS: " . scalar(@dorks) . " | MOTOR: " . uc($motores[0]) . " | INTENSIDADE: $CONFIG{intensidade}";
+        "🔍 DORKS GERADOS: " . scalar(@dorks) . " | MOTOR: " . uc($motores[0]) . " | INTENSIDADE: $CONFIG{intensidade}";
     print "${C_CYAN}╚══════════════════════════════════════════════════════════════════════╝${C_RESET}\n\n";
 
     my $count = 1;
@@ -481,10 +444,9 @@ sub exibir_dorks {
         for my $motor (@motores) {
             my $url = construir_url_motor($dork, $motor);
             my $motor_label = ucfirst($motor);
-            printf "  ${C_BLUE} $motor_label:${C_RESET} %s\n", $url;
+            printf "  ${C_BLUE}➡ $motor_label:${C_RESET} %s\n", $url;
         }
         print "\n";
-
         $count++;
     }
 }
@@ -498,7 +460,6 @@ sub exportar_resultados {
     my @motores = @$motores_ref;
     my $formato = $CONFIG{formato};
 
-    # Gera timestamp
     my $timestamp = strftime('%Y-%m-%d %H:%M:%S', localtime);
 
     if ($formato eq 'txt') {
@@ -517,21 +478,24 @@ sub exportar_resultados {
 }
 
 sub exportar_txt {
-    my ($dorks, $motores, $file, $ts) = @_;
+    my ($dorks_ref, $motores_ref, $file, $ts) = @_;
+    my @dorks   = @$dorks_ref;
+    my @motores = @$motores_ref;
+
     open my $fh, '>', $file or die "${C_RED}❌ Erro ao escrever $file: $!${C_RESET}\n";
 
     print $fh "=" x 70 . "\n";
     print $fh "FYDELISDORK v3.0 PRO - Relatório de Dorks\n";
     print $fh "FydelisTechos © 2026\n";
     print $fh "Gerado em: $ts\n";
-    print $fh "Motores: " . join(", ", map { ucfirst } @$motores) . "\n";
+    print $fh "Motores: " . join(", ", map { ucfirst } @motores) . "\n";
     print $fh "Intensidade: $CONFIG{intensidade}\n";
     print $fh "=" x 70 . "\n\n";
 
     my $count = 1;
-    for my $dork (@$dorks) {
+    for my $dork (@dorks) {
         print $fh "[$count] $dork\n";
-        for my $motor (@$motores) {
+        for my $motor (@motores) {
             my $url = construir_url_motor($dork, $motor);
             printf $fh "  -> %s: %s\n", ucfirst($motor), $url;
         }
@@ -540,16 +504,19 @@ sub exportar_txt {
     }
 
     print $fh "=" x 70 . "\n";
-    print $fh "Total de dorks gerados: " . scalar(@$dorks) . "\n";
+    print $fh "Total de dorks gerados: " . scalar(@dorks) . "\n";
     print $fh "=" x 70 . "\n";
     close $fh;
 }
 
 sub exportar_html {
-    my ($dorks, $motores, $file, $ts) = @_;
+    my ($dorks_ref, $motores_ref, $file, $ts) = @_;
+    my @dorks   = @$dorks_ref;
+    my @motores = @$motores_ref;
+
     open my $fh, '>', $file or die "${C_RED}❌ Erro ao escrever $file: $!${C_RESET}\n";
 
-    my $motores_str = join(", ", map { ucfirst } @$motores);
+    my $motores_str = join(", ", map { ucfirst } @motores);
 
     print $fh <<"HTML";
 <!DOCTYPE html>
@@ -647,17 +614,17 @@ sub exportar_html {
             <h1>🔍 FydelisDork v3.0 PRO</h1>
             <p>Relatório de Google Dorks & OSINT</p>
             <div class="meta">
-                📅 Gerado em: $ts |
-                🌐 Motores: $motores_str |
-                ⚡ Intensidade: $CONFIG{intensidade}
+                 Gerado em: $ts |
+                 Motores: $motores_str |
+                 Intensidade: $CONFIG{intensidade}
             </div>
             <div class="stats">
                 <div class="stat-box">
-                    <div class="num">@{[$#dorks + 1]}</div>
+                    <div class="num">@{[scalar @dorks]}</div>
                     <div class="label">Dorks Gerados</div>
                 </div>
                 <div class="stat-box">
-                    <div class="num">@{[$#motores + 1]}</div>
+                    <div class="num">@{[scalar @motores]}</div>
                     <div class="label">Motores</div>
                 </div>
             </div>
@@ -665,13 +632,13 @@ sub exportar_html {
 HTML
 
     my $count = 1;
-    for my $dork (@$dorks) {
+    for my $dork (@dorks) {
         print $fh qq{        <div class="dork-card">\n};
         print $fh qq{            <span class="dork-number">#$count</span>\n};
         print $fh qq{            <span class="dork-query">$dork</span>\n};
         print $fh qq{            <div class="dork-links">\n};
 
-        for my $motor (@$motores) {
+        for my $motor (@motores) {
             my $url = construir_url_motor($dork, $motor);
             my $label = ucfirst($motor);
             print $fh qq{                <a href="$url" target="_blank" rel="noopener">🌐 $label</a>\n};
@@ -696,17 +663,19 @@ HTML
 }
 
 sub exportar_json {
-    my ($dorks, $motores, $file, $ts) = @_;
+    my ($dorks_ref, $motores_ref, $file, $ts) = @_;
+    my @dorks   = @$dorks_ref;
+    my @motores = @$motores_ref;
 
     my @entries;
     my $count = 1;
-    for my $dork (@$dorks) {
+    for my $dork (@dorks) {
         my %entry = (
-            id       => $count,
-            dork     => $dork,
-            urls     => {},
+            id   => $count,
+            dork => $dork,
+            urls => {},
         );
-        for my $motor (@$motores) {
+        for my $motor (@motores) {
             $entry{urls}{$motor} = construir_url_motor($dork, $motor);
         }
         push @entries, \%entry;
@@ -717,7 +686,7 @@ sub exportar_json {
         tool        => "FydelisDork v3.0 PRO",
         author      => "FydelisTechos © 2026",
         timestamp   => $ts,
-        motors      => [map { ucfirst } @$motores],
+        motors      => [map { ucfirst } @motores],
         parameters  => {
             termo       => $CONFIG{termo} || 'N/A',
             site        => $CONFIG{site} || 'N/A',
@@ -727,34 +696,35 @@ sub exportar_json {
             intensidade => $CONFIG{intensidade},
             categoria   => $CONFIG{categorias} || 'N/A',
         },
-        total_dorks => scalar(@$dorks),
+        total_dorks => scalar(@dorks),
         dorks       => \@entries,
     );
 
     require JSON;
     my $json = JSON->new->pretty->canonical->encode(\%data);
 
-    open my $fh, '>', $file or die "${C_RED} Erro ao escrever $file: $!${C_RESET}\n";
+    open my $fh, '>', $file or die "${C_RED}❌ Erro ao escrever $file: $!${C_RESET}\n";
     print $fh $json;
     close $fh;
 }
 
 sub exportar_csv {
-    my ($dorks, $motores, $file, $ts) = @_;
+    my ($dorks_ref, $motores_ref, $file, $ts) = @_;
+    my @dorks   = @$dorks_ref;
+    my @motores = @$motores_ref;
 
-    open my $fh, '>', $file or die "${C_RED} Erro ao escrever $file: $!${C_RESET}\n";
+    open my $fh, '>', $file or die "${C_RED}❌ Erro ao escrever $file: $!${C_RESET}\n";
 
-    # Cabeçalho
     my @headers = ('#', 'dork');
-    for my $motor (@$motores) {
+    for my $motor (@motores) {
         push @headers, "url_$motor";
     }
     print $fh join(',', @headers) . "\n";
 
     my $count = 1;
-    for my $dork (@$dorks) {
+    for my $dork (@dorks) {
         my @row = ($count, "\"$dork\"");
-        for my $motor (@$motores) {
+        for my $motor (@motores) {
             my $url = construir_url_motor($dork, $motor);
             push @row, "\"$url\"";
         }
@@ -766,20 +736,22 @@ sub exportar_csv {
 }
 
 sub exportar_md {
-    my ($dorks, $motores, $file, $ts) = @_;
+    my ($dorks_ref, $motores_ref, $file, $ts) = @_;
+    my @dorks   = @$dorks_ref;
+    my @motores = @$motores_ref;
 
-    open my $fh, '>', $file or die "${C_RED} Erro ao escrever $file: $!${C_RESET}\n";
+    open my $fh, '>', $file or die "${C_RED}❌ Erro ao escrever $file: $!${C_RESET}\n";
 
-    print $fh "#  FydelisDork v3.0 PRO - Relatório de Dorks\n\n";
+    print $fh "# 🔍 FydelisDork v3.0 PRO - Relatório de Dorks\n\n";
     print $fh "**Gerado em:** $ts  \n";
-    print $fh "**Motores:** " . join(", ", map { ucfirst } @$motores) . "  \n";
+    print $fh "**Motores:** " . join(", ", map { ucfirst } @motores) . "  \n";
     print $fh "**Intensidade:** $CONFIG{intensidade}  \n\n";
     print $fh "---\n\n";
 
     my $count = 1;
-    for my $dork (@$dorks) {
+    for my $dork (@dorks) {
         print $fh "### [$count] $dork\n\n";
-        for my $motor (@$motores) {
+        for my $motor (@motores) {
             my $url = construir_url_motor($dork, $motor);
             printf $fh "  - [%s](%s)\n", ucfirst($motor), $url;
         }
@@ -799,40 +771,33 @@ sub exportar_md {
 # ────────────────────────────────────────────────────────────────
 sub modo_interativo {
     banner();
-    print "\n${C_YELLOW}  MODO INTERATIVO ATIVADO${C_RESET}\n";
+    print "\n${C_YELLOW}⚠  MODO INTERATIVO ATIVADO${C_RESET}\n";
     print "${C_CYAN}Preencha os campos abaixo. Deixe em branco para pular.${C_RESET}\n\n";
 
-    # Termo principal
     print "${C_WHITE} Termo principal:${C_RESET} ";
     chomp(my $termo = <STDIN>);
     $CONFIG{termo} = $termo if $termo;
 
-    # Site
     print "${C_WHITE} Filtrar por site (ex: gov.br):${C_RESET} ";
     chomp(my $site = <STDIN>);
     $CONFIG{site} = $site if $site;
 
-    # Tipo de arquivo
-    print "${C_WHITE}📄 Tipo de arquivo (pdf, doc, xls, sql, php, zip):${C_RESET} ";
+    print "${C_WHITE} Tipo de arquivo (pdf, doc, xls, sql, php, zip):${C_RESET} ";
     chomp(my $arquivo = <STDIN>);
     $CONFIG{arquivo} = $arquivo if $arquivo;
 
-    # Título
     print "${C_WHITE} Palavra no título:${C_RESET} ";
     chomp(my $titulo = <STDIN>);
     $CONFIG{titulo} = $titulo if $titulo;
 
-    # URL
     print "${C_WHITE} Palavra na URL:${C_RESET} ";
     chomp(my $url = <STDIN>);
     $CONFIG{url} = $url if $url;
 
-    # Excluir
     print "${C_WHITE} Palavras a excluir (separadas por vírgula):${C_RESET} ";
     chomp(my $excluir = <STDIN>);
     $CONFIG{excluir} = $excluir if $excluir;
 
-    # Categoria
     print "\n${C_WHITE}Categorias disponíveis:${C_RESET}\n";
     for my $cat (sort keys %CATEGORIAS) {
         printf "  ${C_YELLOW}%s${C_RESET} - %s\n",
@@ -845,22 +810,18 @@ sub modo_interativo {
         $CONFIG{categorias} = lc($categoria);
     }
 
-    # Motor
     print "\n${C_WHITE} Motor de busca (google | bing | duckduckgo | yandex | startpage | all) [google]:${C_RESET} ";
     chomp(my $motor = <STDIN>);
     $CONFIG{motor} = $motor if $motor;
 
-    # Intensidade
     print "${C_WHITE}⚡ Intensidade (1=básica, 2=média, 3=agressiva) [1]:${C_RESET} ";
     chomp(my $intens = <STDIN>);
     $CONFIG{intensidade} = int($intens) if $intens =~ /^\d+$/;
 
-    # Limite
     print "${C_WHITE} Limite de dorks (0=ilimitado):${C_RESET} ";
     chomp(my $limite = <STDIN>);
     $CONFIG{limite} = int($limite) if $limite =~ /^\d+$/;
 
-    # Exportar
     print "${C_WHITE} Exportar para arquivo? (s/N):${C_RESET} ";
     chomp(my $exportar = <STDIN>);
     if ($exportar =~ /^s/im) {
@@ -873,7 +834,6 @@ sub modo_interativo {
         $CONFIG{formato} = $formato if $formato;
     }
 
-    # Abrir navegador
     print "${C_WHITE} Abrir links no navegador? (s/N):${C_RESET} ";
     chomp(my $abrir = <STDIN>);
     $CONFIG{abrir} = 1 if $abrir =~ /^s/im;
@@ -902,7 +862,6 @@ sub abrir_navegador {
             } elsif ($^O eq 'darwin') {
                 system("open '$url'");
             }
-            # Pequena pausa para não sobrecarregar
             sleep 1;
         }
     }
@@ -912,10 +871,10 @@ sub abrir_navegador {
 #                         M A I N
 # ════════════════════════════════════════════════════════════════
 
-# 1. Parse dos argumentos
+# 1. Parse
 parse_args(@ARGV);
 
-# 2. Se modo interativo, entra no menu
+# 2. Modo interativo
 if ($CONFIG{interativo}) {
     modo_interativo();
 }
@@ -923,12 +882,12 @@ if ($CONFIG{interativo}) {
 # 3. Banner
 banner();
 
-# 4. Valida se há o que buscar
+# 4. Valida
 unless ($CONFIG{termo} || $CONFIG{categorias}) {
-    die "\n${C_RED} Informe -t (termo) ou -c (categoria)! Use -H para ajuda.${C_RESET}\n\n";
+    die "\n${C_RED}❌ Informe -t (termo) ou -c (categoria)! Use -H para ajuda.${C_RESET}\n\n";
 }
 
-# 5. Determina motores
+# 5. Motores
 my @motores;
 if ($CONFIG{motor} eq 'all') {
     @motores = qw(google bing duckduckgo yandex startpage);
@@ -937,29 +896,26 @@ if ($CONFIG{motor} eq 'all') {
 }
 
 # 6. Gera dorks
-print "${C_YELLOW} Gerando dorks...${C_RESET}\n";
+print "${C_YELLOW}🔍 Gerando dorks...${C_RESET}\n";
 my @dorks = gerar_dorks();
 
 unless (scalar @dorks) {
-    die "\n${C_RED} Nenhum dork gerado. Verifique os parâmetros.${C_RESET}\n\n";
+    die "\n${C_RED}❌ Nenhum dork gerado. Verifique os parâmetros.${C_RESET}\n\n";
 }
 
 sleep 1;
 
-# 7. Exibe resultados
+# 7. Exibe
 exibir_dorks(\@dorks, \@motores);
 
-# 8. Exporta se solicitado
+# 8. Exporta
 if ($CONFIG{salvar}) {
     my $filename = $CONFIG{salvar};
-
-    # Se não tem extensão, adiciona
     $filename .= ".$CONFIG{formato}" unless $filename =~ /\.\w+$/;
-
     exportar_resultados(\@dorks, \@motores, $filename);
 }
 
-# 9. Abre navegador se solicitado
+# 9. Abre navegador
 if ($CONFIG{abrir}) {
     abrir_navegador(\@dorks, \@motores);
 }
@@ -971,13 +927,13 @@ print "${C_CYAN}║${C_WHITE}                           R E S U M O${C_CYAN}    
 print "${C_CYAN}╚══════════════════════════════════════════════════════════════════════╝${C_RESET}\n\n";
 printf "  ${C_WHITE}%-20s${C_RESET} ${C_GREEN}%s${C_RESET}\n", " Dorks gerados:", scalar(@dorks);
 printf "  ${C_WHITE}%-20s${C_RESET} ${C_CYAN}%s${C_RESET}\n", " Motores:", join(", ", map { ucfirst } @motores);
-printf "  ${C_WHITE}%-20s${C_RESET} ${C_YELLOW}%d${C_RESET}\n", " Intensidade:", $CONFIG{intensidade};
+printf "  ${C_WHITE}%-20s${C_RESET} ${C_YELLOW}%d${C_RESET}\n", "⚡ Intensidade:", $CONFIG{intensidade};
 if ($CONFIG{salvar}) {
     printf "  ${C_WHITE}%-20s${C_RESET} ${C_GREEN}%s${C_RESET}\n", " Exportado:", $CONFIG{salvar};
 }
 
 print "\n${C_GREEN} FydelisDork finalizado com sucesso!${C_RESET}\n";
-print "${C_YELLOW}  Lembre-se: uso exclusivo para estudo e pesquisa de dados públicos.${C_RESET}\n";
+print "${C_YELLOW}⚠  Lembre-se: uso exclusivo para estudo e pesquisa de dados públicos.${C_RESET}\n";
 print "=" x 70 . "\n";
 
 exit 0;
