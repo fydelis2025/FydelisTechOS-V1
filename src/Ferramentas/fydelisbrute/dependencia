@@ -1,0 +1,12 @@
+# Via CPAN
+cpan Moo MooX::HandlesVia Types::Standard Try::Tiny Time::HiRes IO::Select Term::ANSIColor
+
+# Ou via cpanminus (recomendado)
+cpanm Moo MooX::HandlesVia Types::Standard Try::Tiny Time::HiRes Term::ANSIColor
+
+# Dependências opcionais por protocolo
+cpanm Net::SSH::Perl          # SSH
+cpanm Net::Telnet             # Telnet
+cpanm DBI DBD::mysql          # MySQL
+cpanm DBI DBD::Pg             # PostgreSQL
+cpanm DBI DBD::Sybase         # MSSQL
