@@ -6,25 +6,25 @@
 #include <cstdlib>
 #include <termios.h>
 #include <unistd.h>
-#include <fstream>   
+#include <fstream>    
 #include "fydel_api.h"
 
-// ===================== DEFINIÇÕES DE CORES =====================
+// ===================== DEFINIÇÕES DE CORES (ESTILO HACKER) =====================
 #define COR_RESET       "\033[0m"
-#define COR_FUNDO       "\033[48;2;8;12;32m"    
-#define COR_BRANCO      "\033[38;2;245;248;255m"
+#define COR_FUNDO       "\033[40m"            // Preto absoluto
+#define COR_VERDE_CLI   "\033[38;2;0;255;0m"    // Verde Hacker Neon Brilhante
 #define COR_ROXO        "\033[38;2;120;90;255m" 
-#define COR_AZUL        "\033[38;2;64;128;255m" 
-#define COR_AMARELO     "\033[38;2;255;200;0m"
-#define COR_VERDE       "\033[38;2;80;220;100m"
-#define COR_VERMELHO    "\033[38;2;255;80;80m"
 #define COR_CINZA       "\033[38;2;150;155;165m"
+#define COR_VERMELHO    "\033[38;2;255;80;80m"
 
 int fd_mestre = -1;
 int fd_escravo = -1;
 
 void limpar_tela() {
-    std::cout << "\033[2J\033[H" << COR_FUNDO;
+    // Sequência ANSI robusta para limpar buffer, resetar o terminal e aplicar fundo preto
+    std::cout << "\033[H\033[2J\033[3J" << COR_FUNDO << COR_VERDE_CLI;
+    // Força o envio para o buffer do terminal
+    std::cout << std::flush;
 }
 
 void exibir_boas_vindas() {
@@ -34,82 +34,15 @@ void exibir_boas_vindas() {
     if (arquivo.is_open()) {
         std::string linha;
         while (std::getline(arquivo, linha)) {
-            std::cout << COR_BRANCO << linha << "\n";
+            std::cout << COR_VERDE_CLI << linha << "\n";
         }
         arquivo.close();
     } else {
-        // Fallback elegante se a ISO não tiver o arquivo no chroot
-        std::cout << COR_VERDE << "========================================\n";
-        std::cout << "         FYDELISTECH OS TERMINAL        \n";
-        std::cout << "========================================\n" << COR_RESET;
+        // Fallback elegante
+        std::cout << COR_VERDE_CLI << "========================================================\n";
+        std::cout << "           FYDELISTECHOS — SECURE TERMINAL v1.0         \n";
+        std::cout << "========================================================\n\n";
     }
-}
-
-void exibir_dashboard() {
-    limpar_tela();
-    std::cout << COR_ROXO << "╔════════════════════════════════════════════════════════╗\n";
-    std::cout << "║             📊 CORE PERFORMANCE DASHBOARD             ║\n";
-    std::cout << "╚════════════════════════════════════════════════════════╝\n" << COR_RESET;
-
-    std::cout << COR_AZUL << "  [+] CPU:    " << COR_AMARELO << obter_uso_cpu() << "%\n";
-    std::cout << COR_AZUL << "  [+] RAM:    " << COR_AMARELO << obter_uso_ram() << "%\n";
-    std::cout << COR_AZUL << "  [+] DISK:   " << COR_AMARELO << obter_uso_disco() << "%\n";
-    std::cout << COR_AZUL << "  [+] NET:    " << COR_AMARELO << obter_velocidade_rede() << " Mbps\n\n" << COR_RESET;
-}
-
-void renderizar_menu() {
-    exibir_boas_vindas();
-    std::cout << COR_AZUL << "\n  [1] " << COR_BRANCO << "Abrir Shell Seguro (Bash PTY)\n";
-    std::cout << COR_AZUL << "  [2] " << COR_BRANCO << "Verificar Saúde do Kernel / Sistema\n";
-    std::cout << COR_AZUL << "  [3] " << COR_BRANCO << "Monitor de Recursos em Tempo Real\n";
-    std::cout << COR_AZUL << "  [0] " << COR_VERMELHO << "Encerrar Sessão\n\n" << COR_RESET;
-    std::cout << COR_ROXO << "  FydelisTechOS > " << COR_RESET;
-}
-
-void gerenciar_opcoes() {
-    int opcao = -1;
-    if (!(std::cin >> opcao)) {
-        std::cin.clear();
-        std::cin.ignore(10000, '\n');
-        return;
-    }
-
-    switch (opcao) {
-        case 1:
-            limpar_tela();
-            // Mensagem de impacto personalizada com as cores do seu sistema
-            std::cout << COR_ROXO << "┌────────────────────────────────────────────────────────┐\n";
-            std::cout << "│ " << COR_VERDE  << " ⚡ Você está utilizando o terminal da FydelisTechOS  " << COR_ROXO << "│\n";
-            std::cout << "└────────────────────────────────────────────────────────┘\n\n" << COR_RESET;
-            
-            // Opcional: Uma pequena linha de status
-            std::cout << COR_CINZA << "[+] Ambiente PTY seguro ativado. Digite 'exit' para retornar ao menu.\n\n" << COR_RESET;
-            
-            // Passa o controle para o bash interativo em Assembly
-            pty_loop(fd_mestre);
-            break;
-        case 2:
-            limpar_tela();
-            std::cout << COR_ROXO << "--- DIAGNÓSTICO DE AMBIENTE ---\n" << COR_RESET;
-            std::cout << " Drivers PTY:   " << (verificar_drivers() ? "🟢 OK" : "🔴 FALHA") << "\n";
-            std::cout << " Montagem /pts: " << (verificar_montagem_pts() ? "🟢 OK" : "🔴 FALHA") << "\n";
-            std::cout << " Permissões:    " << (verificar_permissoes() ? "🟢 OK" : "🔴 FALHA") << "\n";
-            break;
-        case 3:
-            exibir_dashboard();
-            break;
-        case 0:
-            std::cout << COR_VERDE << "\n👋 Encerrando sessão... Até logo!\n" << COR_RESET;
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            pty_fechar();
-            exit(0);
-        default:
-            std::cout << COR_VERMELHO << "\n❌ Opção inválida!\n" << COR_RESET;
-            break;
-    }
-
-    std::cout << "\n\n  " << COR_CINZA << "Pressione ENTER para voltar ao menu..." << COR_RESET;
-    std::cin.ignore(10000, '\n'); std::cin.get();
 }
 
 int main() {
@@ -126,10 +59,24 @@ int main() {
         return 1;
     }
 
-    while (true) {
-        renderizar_menu();
-        gerenciar_opcoes();
-    }
+    // Exibe banner de boas-vindas estilo hacker
+    exibir_boas_vindas();
 
+    // Mensagem de boas-vindas ao terminal direto
+    std::cout << COR_ROXO << "┌────────────────────────────────────────────────────────┐\n";
+    std::cout << "│ " << COR_VERDE_CLI << " ⚡ FydelisTechOS Terminal Ativo & Seguro (PTY)       " << COR_ROXO << "│\n";
+    std::cout << "└────────────────────────────────────────────────────────┘\n\n" << COR_RESET;
+    
+    std::cout << COR_CINZA << "[+] Ambiente pronto. Digite 'exit' para encerrar a sessão.\n\n" << COR_RESET;
+
+    // Garante que o verde hacker continue ativo antes de passar o controle
+    std::cout << COR_VERDE_CLI;
+
+    // Passa o controle imediatamente para o bash interativo em Assembly (Direto ao PTY)
+    pty_loop(fd_mestre);
+
+    // Encerramento limpo ao sair do shell
+    pty_fechar();
+    std::cout << COR_RESET;
     return 0;
 }
