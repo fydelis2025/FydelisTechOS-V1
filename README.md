@@ -41,6 +41,22 @@ O coração do FydelisTechOS é o seu terminal híbrido interativo executado no 
 
 ---
 
+## 🛠️ Ferramentas da Suíte
+
+O ecossistema é composto por cinco ferramentas principais altamente otimizadas:
+
+1. **`FydelisBrute`** (`fydelisbrute/`) — Motor concorrente de força bruta e teste de credenciais para múltiplos protocolos (SSH, Telnet, FTP, SMTP, POP3, IMAP, HTTP/HTTPS, MySQL, MSSQL, PostgreSQL).
+2. **`FydelisDir`** (`fydelisdir/`) — Enumerador de caminhos e diretórios HTTP/HTTPS de alta performance com suporte a extensões dinâmicas e controle de concorrência por threads.
+3. **`FydelisHash`** (`fydelishash/`) — Verificador e resolvedor de hashes baseado em dicionários, com suporte nativo a MD5, SHA1, SHA256 e SHA512.
+4. **`FydelisScan`** (`fydelisscan/`) — Scanner integrado de portas TCP em lote com verificação automática de credenciais nos serviços descobertos.
+5. **`FydelisWordlist`** (`fydeliswordlist/`) — Gerador de listas de senhas personalizadas baseadas em engenharia social (nomes, anos, locais e mutações com símbolos/números).
+
+---
+
+## 📁 Arquitetura do Repositório
+
+O projeto segue um padrão estrito de separação de responsabilidades (`CLI`, `Config`, `Core/Engine`):
+
 ## 📦 3. Gerenciamento de Software (`fydel-pkg`)
 
 O sistema conta com o utilitário personalizado `fydel-pkg` para envelopar o poder do ecossistema `apt` de forma visual. Para usá-lo, selecione a opção `6` no menu principal ou execute `fydel-pkg` no terminal como root.
