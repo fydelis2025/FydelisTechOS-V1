@@ -118,9 +118,22 @@ mkdir -p config/includes.chroot/etc/skel/Desktop/
 mkdir -p config/bootloaders/grub/
 mkdir -p config/includes.binary/boot/grub/
 
-# Copia as ferramentas customizadas Fydelis (FydelisAudit, FydelisDork, fydelisbrute, etc.)
-if [ -d "src/ferramentas" ] && [ "$(ls -A src/ferramentas 2>/dev/null)" ]; then
-  cp -r src/ferramentas/* config/includes.chroot/usr/local/bin/fydelis-tools/
+# Copia o ecossistema FydelisAI e as ferramentas centralizadas em tools/
+if [ -d "ferramentas/fydelis-ai" ]; then
+  mkdir -p config/includes.chroot/opt/fydelis-ai/
+  cp -r ferramentas/fydelis-ai/* config/includes.chroot/opt/fydelis-ai/
+  
+  # Cria um link simbólico global para o binário principal fydelis-ai no PATH do sistema
+  if [ -f config/includes.chroot/opt/fydelis-ai/fydelis-ai.pl ]; then
+    ln -sf /opt/fydelis-ai/fydelis-ai.pl config/includes.chroot/usr/local/bin/fydelis-ai
+    chmod +x config/includes.chroot/opt/fydelis-ai/fydelis-ai.pl
+  fi
+fi
+
+# Copia as ferramentas individuais da pasta tools para a pasta de utilitários do sistema
+if [ -d "ferramentas/fydelis-ai/tools" ] && [ "$(ls -A ferramentas/fydelis-ai/tools 2>/dev/null)" ]; then
+  cp -r ferramentas/fydelis-ai/tools/* config/includes.chroot/usr/local/bin/fydelis-tools/
+  chmod -R +x config/includes.chroot/usr/local/bin/fydelis-tools/ 2>/dev/null || true
 fi
 
 if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
