@@ -1,0 +1,20 @@
+# Modo básico
+perl fydelisbrute.pl -h 192.168.1.100 -p 22 -t ssh -u admin -S wordlists/senhas.txt
+
+# Completo com verbose e log
+perl fydelisbrute.pl \
+    -h 10.0.0.50 \
+    -p 21 \
+    -t ftp \
+    -U wordlists/usuarios.txt \
+    -S wordlists/senhas.txt \
+    -T 10 \
+    --timeout 8 \
+    --retry 3 \
+    --delay 100 \
+    -v \
+    -o results/encontradas.txt \
+    -l results/sessao.log
+
+# Ajuda completa
+perl fydelisbrute.pl --help
