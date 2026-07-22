@@ -1,0 +1,17 @@
+# Scan básico
+sudo ./fydelischeck.pl -h 192.168.1.1
+
+# Scan com banner grabbing e portas específicas
+sudo ./fydelischeck.pl -h scanme.org -p 22,80,443,3306,8080 -b
+
+# Top 100 portas com classificação de risco
+sudo ./fydelischeck.pl -h 10.0.0.1 --top-ports 100 -v
+
+# Scan completo 1-65535 com timeout global
+sudo ./fydelischeck.pl -h target.com -p 1-65535 -t 2 --timeout-global 600
+
+# Exportar relatório
+sudo ./fydelischeck.pl -h server.local -p 1-1000 -o relatorio.txt
+
+# Scan silencioso
+sudo ./fydelischeck.pl -h 172.16.0.1 -q --top-ports 1000
