@@ -184,6 +184,20 @@ Categories=System;Settings;
 StartupNotify=true
 EOF
 
+mkdir -p config/includes.chroot/usr/share/applications/
+
+cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-control.desktop
+[Desktop Entry]
+Name=Painel de Controle Fydelis
+Comment=Gerenciador e Painel de Controle do FydelisTechOS
+Exec=python3 /usr/local/bin/fydelis-control.py
+Icon=/usr/share/icons/fydel/branding/logo_menu.png
+Terminal=false
+Type=Application
+Categories=System;Settings;
+StartupNotify=true
+EOF
+
 if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
   cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
 fi
