@@ -137,6 +137,9 @@ fi
 [ -f "src/sistema/FydelisSynaptic.py" ] && cp src/sistema/FydelisSynaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic.py
 [ -f "src/sistema/FydelisPackage.py" ] && cp src/sistema/FydelisPackage.py config/includes.chroot/usr/local/bin/fydel-package.py
 [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/fydel_ai.py
+# Copia o Painel de Controle Personalizado para o Chroot
+[ -f "src/sistema/FydelisControl.py" ] && cp src/sistema/FydelisControl.py config/includes.chroot/usr/local/bin/fydelis-control.py
+chmod +x config/includes.chroot/usr/local/bin/fydel-control.py 2>/dev/null || true
 
 chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
 chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
@@ -144,6 +147,8 @@ chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 ln -sf /usr/local/bin/fydel-install.sh config/includes.chroot/usr/local/bin/fydel-install
 ln -sf /usr/local/bin/fydel-synaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic
 ln -sf /usr/local/bin/fydel_ai.py config/includes.chroot/usr/local/bin/fydel-ai
+# Cria um link simbólico limpo no PATH
+ln -sf /usr/local/bin/fydelis-control.py config/includes.chroot/usr/local/bin/fydel-control
 
 echo "=== Criando Lançadores de Aplicativos, Menus e Logo ==="
 mkdir -p config/includes.chroot/usr/share/applications/
