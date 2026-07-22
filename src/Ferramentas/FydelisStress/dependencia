@@ -1,9 +1,0 @@
-# No Kali / Debian / Ubuntu:
-sudo apt update
-sudo apt install perl libio-socket-inet-perl libterm-ansicolor-perl \
-                 libtime-hires-perl libthreads-perl libthreads-shared-perl \
-                 libjson-perl libmime-base64-perl
-
-# No Termux (Android):
-pkg install perl
-cpan install Term::ANSIColor IO::Socket::INET JSON MIME::Base64
