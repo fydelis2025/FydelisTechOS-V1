@@ -66,8 +66,8 @@ wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto meta
 # Sistema, Painel de Controle e configuração
 gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
 
-# Python e Dependências para a FydelisTech-AI
-python3 python3-pip python3-requests python3-setuptools python3-wheel
+# Python, PyQt5 e Dependências para a FydelisTech-AI
+python3 python3-pip python3-requests python3-setuptools python3-wheel python3-pyqt5
 
 # Compilação
 build-essential nasm gcc g++ make cmake
@@ -102,7 +102,7 @@ mkdir -p config/includes.chroot/usr/local/bin/
 mkdir -p config/includes.chroot/usr/local/bin/fydelis-tools/
 mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
 mkdir -p config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-mkdir -p config/includes.chroot/usr/share/icons/fydel/
+mkdir -p config/includes.chroot/usr/share/icons/fydel/branding/
 mkdir -p config/includes.chroot/etc/systemd/system/
 mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
 mkdir -p config/includes.chroot/opt/fydel/telas/
@@ -111,54 +111,82 @@ mkdir -p config/includes.chroot/opt/fydel/iso/
 mkdir -p config/includes.chroot/opt/fydel/instalador/slides/
 mkdir -p config/includes.chroot/usr/share/themes/CyberHack/gnome-shell/
 mkdir -p config/includes.chroot/usr/share/backgrounds/fydel/
-
-mkdir -p config/includes.chroot/usr/share/icons/fydel/branding/
 mkdir -p config/includes.chroot/etc/skel/Desktop/
 
 mkdir -p config/bootloaders/grub/
 mkdir -p config/includes.binary/boot/grub/
 
-# Copia o ecossistema FydelisAI e as ferramentas centralizadas em tools/
+# Copia o ecossistema FydelisAI e ferramentas em tools/
 if [ -d "ferramentas/fydelis-ai" ]; then
   mkdir -p config/includes.chroot/opt/fydelis-ai/
   cp -r ferramentas/fydelis-ai/* config/includes.chroot/opt/fydelis-ai/
   
-  # Cria um link simbólico global para o binário principal fydelis-ai no PATH do sistema
   if [ -f config/includes.chroot/opt/fydelis-ai/fydelis-ai.pl ]; then
     ln -sf /opt/fydelis-ai/fydelis-ai.pl config/includes.chroot/usr/local/bin/fydelis-ai
     chmod +x config/includes.chroot/opt/fydelis-ai/fydelis-ai.pl
   fi
 fi
 
-# Copia as ferramentas individuais da pasta tools para a pasta de utilitários do sistema
 if [ -d "ferramentas/fydelis-ai/tools" ] && [ "$(ls -A ferramentas/fydelis-ai/tools 2>/dev/null)" ]; then
   cp -r ferramentas/fydelis-ai/tools/* config/includes.chroot/usr/local/bin/fydelis-tools/
   chmod -R +x config/includes.chroot/usr/local/bin/fydelis-tools/ 2>/dev/null || true
 fi
 
-if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
-  cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+# Copia utilitários, instalador e interfaces gráficas PyQt5
+[ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/fydel-install.sh
+[ -f "src/sistema/FydelisSynaptic.py" ] && cp src/sistema/FydelisSynaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic.py
+[ -f "src/sistema/FydelisPackage.py" ] && cp src/sistema/FydelisPackage.py config/includes.chroot/usr/local/bin/fydel-package.py
+[ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/fydel_ai.py
+
+chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
+chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
+
+ln -sf /usr/local/bin/fydel-install.sh config/includes.chroot/usr/local/bin/fydel-install
+ln -sf /usr/local/bin/fydel-synaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic
+ln -sf /usr/local/bin/fydel_ai.py config/includes.chroot/usr/local/bin/fydel-ai
+
+echo "=== Criando Lançadores de Aplicativos, Menus e Logo ==="
+mkdir -p config/includes.chroot/usr/share/applications/
+
+# Copia a logo oficial para o sistema
+if [ -f "./logo_menu.png" ]; then
+  cp ./logo_menu.png config/includes.chroot/usr/share/icons/fydel/branding/logo_menu.png
 fi
 
-[ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
-[ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
-[ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
-[ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
+# 1. Atalho para o Instalador do Sistema
+cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-install.desktop
+[Desktop Entry]
+Name=Instalar FydelisTechOS
+Comment=Instalar o sistema operacional no disco rígido
+Exec=gnome-terminal -- /usr/local/bin/fydel-install
+Icon=/usr/share/icons/fydel/branding/logo_menu.png
+Terminal=false
+Type=Application
+Categories=System;
+StartupNotify=true
+EOF
 
-if [ -d "src/instalador/slides" ] && [ "$(ls -A src/instalador/slides 2>/dev/null)" ]; then
-  cp -r src/instalador/slides/* config/includes.chroot/opt/fydel/instalador/slides/
+# 2. Atalho para o Gerenciador de Pacotes (Estilo Synaptic)
+cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-synaptic.desktop
+[Desktop Entry]
+Name=Gerenciador de Pacotes Fydelis
+Comment=Gerenciar pacotes APT com interface gráfica avançada
+Exec=python3 /usr/local/bin/fydel-synaptic.py
+Icon=/usr/share/icons/fydel/branding/logo_menu.png
+Terminal=false
+Type=Application
+Categories=System;Settings;
+StartupNotify=true
+EOF
+
+if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
+  cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
 fi
 
 if [ -f "./wallpaper.png" ]; then
   cp ./wallpaper.png config/includes.chroot/usr/share/backgrounds/fydel/wallpaper.png
 else
   touch config/includes.chroot/usr/share/backgrounds/fydel/wallpaper.png
-fi
-
-if [ -f "./logo_menu.png" ]; then
-  cp ./logo_menu.png config/includes.chroot/usr/share/icons/fydel/branding/logo_menu.png
-else
-  touch config/includes.chroot/usr/share/icons/fydel/branding/logo_menu.png
 fi
 
 [ -f "./theme.txt" ] && cp ./theme.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
@@ -283,22 +311,23 @@ if [ -d /usr/local/src/fydel-terminal ]; then
 fi
 
 chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
-chmod +x /usr/local/bin/gerenciador_pacotes.sh 2>/dev/null || true
-chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
 chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
 
-ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
 ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
 ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
 
-if [ -f /usr/local/bin/usuarios_permissoes.sh ]; then
-  bash /usr/local/bin/usuarios_permissoes.sh
-fi
-
-if [ -f /etc/systemd/system/fydelterm.service ]; then
-  systemctl daemon-reload
-  systemctl enable fydelterm.service
-fi
+# ── CONFIGURANDO AUTO-START DO INSTALADOR NO PRIMEIRO BOOT ──
+mkdir -p /etc/skel/.config/autostart/
+cat << 'AUTO_INSTALL' > /etc/skel/.config/autostart/fydel-auto-install.desktop
+[Desktop Entry]
+Type=Application
+Exec=gnome-terminal --title="Instalador FydelisTechOS" -- /usr/local/bin/fydel-install
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Fydelis Auto Installer
+Comment=Abre o instalador do sistema automaticamente no boot
+AUTO_INSTALL
 
 echo "=== [Hook] Injetando Estilização Estilo Cyberpunk/Glassmorphic (CyberHack) ==="
 cat << 'CSS' > /usr/share/themes/CyberHack/gnome-shell/gnome-shell.css
@@ -449,45 +478,6 @@ X-GNOME-Autostart-enabled=true
 Name=FydelisWidgets
 Description=Inicia os widgets glassmorphic do FydelisTechOS
 AUTO
-
-echo "=== [Hook] Gerando Ícones e Atalhos para a fileira vertical Esquerda ==="
-cat << 'DK' > /etc/skel/Desktop/code.desktop
-[Desktop Entry]
-Name=Code Editor
-Exec=gedit %F
-Icon=accessories-text-editor
-Type=Application
-Terminal=false
-DK
-
-cat << 'DK' > /etc/skel/Desktop/terminal.desktop
-[Desktop Entry]
-Name=Terminal
-Exec=gnome-terminal
-Icon=utilities-terminal
-Type=Application
-Terminal=false
-DK
-
-cat << 'DK' > /etc/skel/Desktop/git.desktop
-[Desktop Entry]
-Name=Git Tool
-Exec=firefox-esr https://github.com
-Icon=vcs-normal
-Type=Application
-Terminal=false
-DK
-
-cat << 'DK' > /etc/skel/Desktop/settings.desktop
-[Desktop Entry]
-Name=Settings
-Exec=gnome-control-center
-Icon=org.gnome.Settings
-Type=Application
-Terminal=false
-DK
-
-chmod +x /etc/skel/Desktop/*.desktop
 
 echo "=== [Hook] Estruturando Esquema de Configurações Padrão (GSettings GLib com CyberHack) ==="
 mkdir -p /usr/share/glib-2.0/schemas/
