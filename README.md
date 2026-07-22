@@ -27,6 +27,25 @@ O ecossistema do FydelisTechOS integra ferramentas nativas de ponta para operado
 
 ---
 
+## 🎓 Sobre o FydelisLab (Laboratório de Treinamento)
+
+O FydelisLab foi desenvolvido para transformar o aprendizado de comandos Linux e metodologias de pentest em uma experiência gamificada (Hands-on).
+
+Progresso Persistente: O sistema utiliza SQLite para salvar automaticamente o nível, os exercícios concluídos e o XP do operador, mesmo se a aplicação for fechada.
+
+Certificação Automatizada: Ao concluir um ciclo completo, o sistema gera dinamicamente uma imagem de certificado oficial e facilita a exportação/compartilhamento da conquista.
+
+## 📜 Licença e Propriedade Intelectual
+
+Este projeto é distribuído sob os termos da licença especificada no repositório. Desenvolvido por Adiel Santos Fontes (FydelisTech).
+
+### Por que essa documentação se encaixa perfeitamente no seu projeto?
+
+* **Valoriza o seu trabalho técnico:** Explica de forma clara que o projeto não é apenas uma distro comum, mas um ecossistema educacional completo.
+* 
+* **Organização Profissional:** Facilita para qualquer desenvolvedor ou recrutador que acesse o seu GitHub entender rapidamente para que serve cada pasta (`sistema/`, `ferramentas/`, `build_local.sh`).
+  
+
 ## 📂 Estrutura do Repositório
 
 ```text
@@ -43,3 +62,6 @@ FydelisTechOS-V1/
 ├── ferramentas/
 │   └── fydelis-ai/          # Módulos de IA e scripts de suporte
 └── src/                     # Assets de instalação, temas GRUB e Plymouth
+
+
+
