@@ -1,4 +1,4 @@
-# FydelisTechOS-V1
+# 🛡️ FydelisTechOS V1.0
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Debian](https://img.shields.io/badge/Debian-Bookworm-A81D13?logo=debian)](https://www.debian.org/)
@@ -6,83 +6,36 @@
 [![Tools](https://img.shields.io/badge/Tools-161%2B-FF6B6B)](./config/package-lists/fydelistechos.list.chroot)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)](https://github.com/fydelistech/fydelistechos)
 
-# Manual Oficial — FydelisTechOS © 2026
-Bem-vindo ao manual oficial do FydelisTechOS, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema, integrando o ecossistema proprietário de ferramentas de pentest desenvolvido do zero para autonomia operacional total.
+> **Cyber Warfare Interface & Custom Linux Distribution**
 
-# O Propósito do Sistema
-
-O FydelisTechOS nasce da necessidade de soberania técnica. Em vez de depender de pacotes de terceiros e atualizações externas que podem falhar no momento crítico de uma auditoria, este sistema entrega uma suíte completa de utilitários em Perl (FydelisBrute, FydelisScan, FydelisDir, FydelisHash, FydelisWordlist) sob o seu total controle. Se o cenário exigir ir ao "gargalo" e reescrever a lógica, a ferramenta é sua e o código está nas suas mãos.
-
-# Guia do Usuário - FydelisTechOS v1.0
-
-Bem-vindo ao manual oficial do **FydelisTechOS**, um sistema operacional seguro, leve e customizado construído sobre a arquitetura estável do Debian 12 Bookworm. Este guia foi projetado para orientar você desde o primeiro boot até a administração avançada do sistema, com sistema de pentest próprio para uso.
+O **FydelisTechOS** é um sistema operacional GNU/Linux customizado e focado em **Cibersegurança, Ethical Hacking, Análise de Redes e Inteligência Artificial**, desenvolvido de forma independente para servir como ambiente operacional autossuficiente e laboratório prático de estudos.
 
 ---
 
-## 1. Primeiro Boot e Inicialização
+## 🚀 Arquitetura e Principais Recursos
 
-Ao ligar o computador com o FydelisTechOS, você passará pelas seguintes etapas visuais:
+O ecossistema do FydelisTechOS integra ferramentas nativas de ponta para operadores de segurança e entusiastas de tecnologia:
 
-1. **Menu do GRUB**: Uma interface personalizada com fundo escuro (#080C20) e logotipo centralizado onde você pode escolher iniciar o sistema ou entrar direto no instalador.
-2. **Tela Splash**: Uma animação em alta definição na cor roxa informando o carregamento dos módulos do sistema.
-3. **Prompt de Autenticação**: O sistema solicitará as credenciais de acesso para garantir a segurança dos dados.
-
-### Perfis de Usuário Padrão (Ambiente Live/Instalado)
-* **Administrador (admin)**:
-  * **Login**: `admin`
-  * **Senha Padrão**: `FydelAdmin2026!`
-  * **Privilégios**: Execução de comandos via `sudo`, gerenciamento de rede, discos e segurança.
-* **Usuário Comum (usuario)**:
-  * **Login**: `usuario`
-  * **Senha Padrão**: `Usuario2026!`
-  * **Privilégios**: Uso geral do sistema, internet, som e mídia. Não possui acesso de escrita a binários do sistema.
+*   🎓 **FydelisLab (Cyber Lab Interativo):** Um laboratório de progressão baseado em terminal integrado diretamente ao sistema. O usuário avança de nível (Básico, Intermediário, Avançado), acumula XP, resolve desafios reais de linha de comando, gera certificados em imagem customizados e compartilha suas conquistas diretamente nas redes sociais.
+*   🤖 **Fydelis-AI:** Assistente de inteligência artificial integrada ao sistema para suporte técnico, análise de comandos, automação e consultas offline utilizando modelos avançados (como Llama e Gemma via Ollama).
+*   🛠️ **Arsenal de Pentest Nativo:** Conjunto completo de ferramentas de segurança pré-instaladas e estruturadas para auditoria, varredura, análise de vulnerabilidades e testes de intrusão.
+*   🎛️ **Painel de Controle e Utilitários:** Ferramentas gráficas customizadas em PyQt5 (Gerenciador de Pacotes Fydelis, Painel de Controle e Terminal Híbrido) com identidade visual Cyberpunk/Glassmorphic (*CyberHack*).
 
 ---
 
-## 2. Navegação na Interface Central (`fydelterm`)
+## 📂 Estrutura do Repositório
 
-O coração do FydelisTechOS é o seu terminal híbrido interativo executado no TTY1. Ele exibe o monitoramento de hardware em tempo real (CPU, RAM, Disco e Rede) e um menu numérico para disparar aplicações:
-
-* `[1]` **LibreOffice**: Suíte completa de escritório (Textos, Planilhas e Apresentações).
-* `[2]` **Firefox**: Navegador web oficial pré-configurado.
-* `[3]` **GParted / Discos**: Ferramentas avançadas para análise e particionamento de armazenamento.
-* `[4]` **Gerenciador de Redes**: Interface CLI/GUI para conexão a redes Wi-Fi e Ethernet.
-* `[5]` **Painel de Controle**: Configurações de utilizadores, som, vídeo e hora.
-* `[6]` **Gerenciador de Pacotes FYDEL**: Instalação e remoção de softwares.
-* `[7]` **Ferramentas de Segurança**: Arsenal nativo de auditoria (Fydelisbrute, Wireshark, Metasploit, FydelisDir, FydelisHash, FydelisScan, FydelisWordlist).
-* `[8]` **Terminal de Comandos**: Abre um shell interativo Bash real clonado via pseudo-terminal (PTY) de baixo nível em Assembly.
-* `[0]` **Sair da Sessão**: Encerra a sessão atual com segurança.
-
----
-
-## Ferramentas da Suíte
-
-O ecossistema é composto por cinco ferramentas principais altamente otimizadas:
-
-1. **`FydelisBrute`** (`fydelisbrute/`) — Motor concorrente de força bruta e teste de credenciais para múltiplos protocolos (SSH, Telnet, FTP, SMTP, POP3, IMAP, HTTP/HTTPS, MySQL, MSSQL, PostgreSQL).
-2. **`FydelisDir`** (`fydelisdir/`) — Enumerador de caminhos e diretórios HTTP/HTTPS de alta performance com suporte a extensões dinâmicas e controle de concorrência por threads.
-3. **`FydelisHash`** (`fydelishash/`) — Verificador e resolvedor de hashes baseado em dicionários, com suporte nativo a MD5, SHA1, SHA256 e SHA512.
-4. **`FydelisScan`** (`fydelisscan/`) — Scanner integrado de portas TCP em lote com verificação automática de credenciais nos serviços descobertos.
-5. **`FydelisWordlist`** (`fydeliswordlist/`) — Gerador de listas de senhas personalizadas baseadas em engenharia social (nomes, anos, locais e mutações com símbolos/números).
-
----
-
-## Arquitetura do Repositório
-
-O projeto segue um padrão estrito de separação de responsabilidades (`CLI`, `Config`, `Core/Engine`):
-
-## 3. Gerenciamento de Software (`fydel-pkg`)
-
-O sistema conta com o utilitário personalizado `fydel-pkg` para envelopar o poder do ecossistema `apt` de forma visual. Para usá-lo, selecione a opção `6` no menu principal ou execute `fydel-pkg` no terminal como root.
-
-### Comandos Rápidos dentro do Terminal Bash:
-Se preferir utilizar a linha de comandos pura do terminal (Opção 8), você pode gerenciar o sistema usando as seguintes sintaxes:
-```bash
-# Atualizar as listas de repositórios oficiais
-sudo fydel-pkg
-
-# Instalar um novo software de segurança ou utilitário
-sudo apt install nome_do_pacote
-
-# Executar uma varredura de rede com o arsenal nativo
-nmap -sV endereço_ip
+```text
+FydelisTechOS-V1/
+├── build_local.sh           # Script de compilação nativa da ISO (Live-Build)
+├── sistema/
+│   ├── FydelisLab/          # Ecossistema do laboratório de cibersegurança
+│   │   ├── FyderlisLab.py   # Script principal do laboratório (Python + SQLite)
+│   │   ├── bancos/          # Banco de dados local para progresso do operador
+│   │   └── certificados/    # Gerador de certificados PNG automatizados
+│   ├── FydelisControl.py    # Painel de controle gráfico do sistema
+│   ├── FydelisSynaptic.py   # Gerenciador de pacotes customizado
+│   └── fydel_ai.py          # Interface da Fydelis-AI
+├── ferramentas/
+│   └── fydelis-ai/          # Módulos de IA e scripts de suporte
+└── src/                     # Assets de instalação, temas GRUB e Plymouth
