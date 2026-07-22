@@ -108,6 +108,13 @@ mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
 mkdir -p config/includes.chroot/opt/fydel/telas/
 mkdir -p config/includes.chroot/opt/fydel/iso/
 
+mkdir -p config/includes.chroot/opt/fydelislab/
+mkdir -p config/includes.chroot/opt/fydelislab/bancos/
+mkdir -p config/includes.chroot/opt/fydelislab/certificados/
+mkdir -p config/includes.chroot/opt/fydelislab/scripts/
+mkdir -p config/includes.chroot/opt/fydelislab/docs/
+mkdir -p config/includes.chroot/opt/fydelislab/backgrounds/
+
 mkdir -p config/includes.chroot/opt/fydel/instalador/slides/
 mkdir -p config/includes.chroot/usr/share/themes/CyberHack/gnome-shell/
 mkdir -p config/includes.chroot/usr/share/backgrounds/fydel/
@@ -115,6 +122,24 @@ mkdir -p config/includes.chroot/etc/skel/Desktop/
 
 mkdir -p config/bootloaders/grub/
 mkdir -p config/includes.binary/boot/grub/
+
+# Copia o ecossistema completo do FydelisLab para a ISO
+if [ -d "sistema/FydelisLab" ]; then
+    mkdir -p config/includes.chroot/opt/fydelislab/
+    cp -r sistema/FydelisLab/* config/includes.chroot/opt/fydelislab/
+
+  # Garante que o script principal e as pastas internas tenham permissão correta
+  chmod +x config/includes.chroot/opt/fydelislab/*.py 2>/dev/null || true
+
+  # Garante que as subpastas de banco e certificados existam e tenham permissão de escrita
+    mkdir -p config/includes.chroot/opt/fydelislab/bancos/
+    mkdir -p config/includes.chroot/opt/fydelislab/certificados/
+    chmod -R 777 config/includes.chroot/opt/fydelislab/bancos/
+    chmod -R 777 config/includes.chroot/opt/fydelislab/certificados/
+    chmod -R 777 config/includes.chroot/opt/fydelislab/scripts/
+    chmod -R 777 config/includes.chroot/opt/fydelislab/docs/
+    chmod -R 777 config/includes.chroot/opt/fydelislab/backgrounds/
+fi
 
 # Copia o ecossistema FydelisAI e ferramentas em tools/
 if [ -d "ferramentas/fydelis-ai" ]; then
