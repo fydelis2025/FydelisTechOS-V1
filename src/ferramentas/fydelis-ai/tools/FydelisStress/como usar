@@ -1,0 +1,50 @@
+TCP Connect (seu original turbinado)
+perl fydelisstress_v3.pl -h 192.168.0.50 -p 80 -d 15 --confirmar
+
+ HTTP GET (requisição real)
+perl fydelisstress_v3.pl -h 192.168.0.50 -p 80 -m http_get -T 10 -d 30 --confirmar
+
+Slowloris (conexões lentas)
+perl fydelisstress_v3.pl -h 192.168.0.50 -p 80 -m slowloris -T 50 -d 30 -L 15 --confirmar
+
+Com Proxy
+# Proxy sem autenticação:
+perl fydelisstress_v3.pl -h 10.0.0.1 -p 80 -P proxy.local:3128 -d 20 --confirmar
+
+# Proxy com autenticação:
+perl fydelisstress_v3.pl -h 10.0.0.1 -p 80 -P user:pass@proxy.local:3128 -d 20 --confirmar
+
+Exportar Relatório
+
+# JSON:
+perl fydelisstress_v3.pl -h 192.168.0.50 -p 80 -d 10 -e json --confirmar
+
+# JSON com nome personalizado:
+perl fydelisstress_v3.pl -h 192.168.0.50 -p 80 -d 10 -e json -o teste.json --confirmar
+
+# CSV:
+perl fydelisstress_v3.pl -h 192.168.0.50 -p 80 -d 10 -e csv --confirmar
+
+Exemplo de JSON Exportado
+{
+  "tool": "FydelisStress v3.0 Ultimate",
+  "author": "FydelisTechos © 2026",
+  "target": "192.168.0.50:80",
+  "method": "tcp_connect",
+  "duration": 30,
+  "threads": 10,
+  "results": {
+    "conn_ok": 15420,
+    "conn_fail": 34,
+    "conn_total": 15454,
+    "avg_rate": 515,
+    "success_pct": "99.8",
+    "fail_pct": "0.2",
+    "resilience": "EXCELENTE ✓"
+  },
+  "samples": [
+    {"time": 1, "rate": 480},
+    {"time": 2, "rate": 510},
+    ...
+  ]
+}
