@@ -17,9 +17,13 @@ O **FydelisTechOS** é um sistema operacional GNU/Linux customizado e focado em 
 O ecossistema do FydelisTechOS integra ferramentas nativas de ponta para operadores de segurança e entusiastas de tecnologia:
 
 *   🎓 **FydelisLab (Cyber Lab Interativo):** Um laboratório de progressão baseado em terminal integrado diretamente ao sistema. O usuário avança de nível (Básico, Intermediário, Avançado), acumula XP, resolve desafios reais de linha de comando, gera certificados em imagem customizados e compartilha suas conquistas diretamente nas redes sociais.
+  
 *   🤖 **Fydelis-AI:** Assistente de inteligência artificial integrada ao sistema para suporte técnico, análise de comandos, automação e consultas offline utilizando modelos avançados (como Llama e Gemma via Ollama).
+  
 *   🛠️ **Arsenal de Pentest Nativo:** Conjunto completo de ferramentas de segurança pré-instaladas e estruturadas para auditoria, varredura, análise de vulnerabilidades e testes de intrusão.
+  
 *   🎛️ **Painel de Controle e Utilitários:** Ferramentas gráficas customizadas em PyQt5 (Gerenciador de Pacotes Fydelis, Painel de Controle e Terminal Híbrido) com identidade visual Cyberpunk/Glassmorphic (*CyberHack*).
+  
 
 ---
 
