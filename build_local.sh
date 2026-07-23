@@ -220,7 +220,7 @@ if [ -f "./logo_menu.png" ]; then
   cp ./logo_menu.png config/includes.chroot/usr/share/icons/fydel/branding/logo_menu.png
 fi
 
-# 1. Atalho para o Instalador do Sistema
+# 1. Atalho para o Instalador do Sistema (Menu de Aplicativos)
 cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-install.desktop
 [Desktop Entry]
 Name=Instalar FydelisTechOS
@@ -233,7 +233,12 @@ Categories=System;
 StartupNotify=true
 EOF
 
-# 2. Atalho para o Gerenciador de Pacotes (Estilo Synaptic)
+# 2. Copia o atalho também para a ÁREA DE TRABALHO (Desktop) padrão
+mkdir -p config/includes.chroot/etc/skel/Desktop/
+cp config/includes.chroot/usr/share/applications/fydel-install.desktop config/includes.chroot/etc/skel/Desktop/
+chmod +x config/includes.chroot/etc/skel/Desktop/fydel-install.desktop
+
+# 3. Atalho para o Gerenciador de Pacotes (Estilo Synaptic)
 cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-synaptic.desktop
 [Desktop Entry]
 Name=Gerenciador de Pacotes Fydelis
@@ -392,21 +397,7 @@ if [ -d /usr/local/src/fydel-terminal ]; then
 fi
 
 chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
-
 ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
-
-# ── CONFIGURANDO AUTO-START DO INSTALADOR NO PRIMEIRO BOOT ──
-mkdir -p /etc/skel/.config/autostart/
-cat << 'AUTO_INSTALL' > /etc/skel/.config/autostart/fydel-auto-install.desktop
-[Desktop Entry]
-Type=Application
-Exec=gnome-terminal --title="Instalador FydelisTechOS" -- /usr/local/bin/fydel-install
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Name=Fydelis Auto Installer
-Comment=Abre o instalador do sistema automaticamente no boot
-AUTO_INSTALL
 
 echo "=== [Hook] Injetando Estilização Estilo Cyberpunk/Glassmorphic (CyberHack) ==="
 cat << 'CSS' > /usr/share/themes/CyberHack/gnome-shell/gnome-shell.css
