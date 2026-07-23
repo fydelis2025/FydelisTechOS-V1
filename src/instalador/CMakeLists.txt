@@ -49,6 +49,10 @@ set(SOURCES
 
     # Catálogo
     src/tools.h
+	
+	# ── Adicione estes dois novos arquivos abaixo: ──
+    src/assistantintro.h
+    src/assistantintro.cpp
 )
 
 add_executable(fydelistechos-installer WIN32 ${SOURCES})
