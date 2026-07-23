@@ -1,4 +1,5 @@
 #include "installwizard.h"
+#include "assistantintro.h"
 #include <QApplication>
 #include <QStyleFactory>
 #include <QMessageBox>
@@ -7,7 +8,6 @@
 #include <QDir>
 #include <QStyle>
 
-// Altere de 'qMain' para 'main' padrão do C++
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
@@ -63,11 +63,24 @@ int main(int argc, char *argv[]) {
         "</p>");
 #endif
 
-    // ─── Cria e exibe o wizard ─────────────────────────────────────
+    // ─── Instancia o Assistente de Boas-Vindas ─────────────────────
+    AssistantIntro assistantWindow;
+    assistantWindow.setWindowTitle("FydelisTechOS — Assistente IA");
+    assistantWindow.resize(600, 400);
+
+    // ─── Instancia o Wizard Principal (mas deixa oculto inicialmente) ──
     InstallWizard wizard;
     wizard.setWindowTitle("FydelisTechOS Lite Installer v1.0 Demo");
     wizard.resize(1024, 700);
-    wizard.show();
+
+    // Quando o usuário clicar em "Iniciar" na assistente, fecha ela e exibe o Wizard
+    QObject::connect(&assistantWindow, &AssistantIntro::assistantFinished, [&]() {
+        assistantWindow.close();
+        wizard.show();
+    });
+
+    // Exibe primeiro a assistente IA
+    assistantWindow.show();
 
     return app.exec();
 }
