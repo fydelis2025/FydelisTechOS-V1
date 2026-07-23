@@ -10,6 +10,10 @@
 #include <QThread>
 #include <cmath>
 
+#ifndef Q_OS_WIN
+#include <unistd.h>
+#endif
+
 InstallWorker::InstallWorker(QObject *parent)
     : QObject(parent)
     , m_process(new QProcess(this))
@@ -37,12 +41,17 @@ void InstallWorker::setSkipUpdate(bool skip) { m_skipUpdate = skip; }
 void InstallWorker::setVerbose(bool verbose) { m_verbose = verbose; }
 void InstallWorker::setDryRun(bool dryRun) { m_dryRun = dryRun; }
 
-// ─── Cancelamento ───────────────────────────────────────────────────────────
+// ─── Cancelamento Seguro ────────────────────────────────────────────────────
 
 void InstallWorker::cancel() {
     m_cancelled = true;
-    if (m_process && m_process->state() == QProcess::Running) {
-        m_process->kill();
+    if (m_process) {
+        if (m_process->state() == QProcess::Running) {
+            m_process->terminate();
+            if (!m_process->waitForFinished(2000)) {
+                m_process->kill();
+            }
+        }
     }
 }
 
@@ -54,6 +63,15 @@ void InstallWorker::run() {
     m_timer.start();
     m_progress = 0;
     m_cancelled = false;
+
+    // ─── Verificação de Privilégios no Linux ───────────────────────
+#ifndef Q_OS_WIN
+    if (getuid() != 0) {
+        emitLog("❌ Erro crítico: O instalador precisa ser executado como root (sudo).\n", true);
+        emit finished(false, "Permissão negada. Execute com privilégios de root.");
+        return;
+    }
+#endif
 
     // ─── Se for Windows, força dry-run automático ──────────────────
 #ifdef Q_OS_WIN
@@ -79,17 +97,16 @@ void InstallWorker::run() {
         }
         emitProgress(100, "Dry-run concluído!");
         emitLog("\n✅ Dry-run finalizado. Nenhuma alteração foi feita no sistema.\n");
-        emitLog("📌 Esta foi uma simulação da interface. No Linux, a instalação real ocorreria.\n");
         emit finished(true, "Dry-run concluído com sucesso. Nenhuma alteração no sistema.");
         return;
     }
 
-    // ─── Etapa 1: Particionamento (0% → 5%) ───────────────────────
+    // ─── Etapa 1: Particionamento com Validação Crítica (0% → 5%) ───
     if (!m_installDevice.isEmpty() && (m_eraseDisk || m_dualBoot)) {
         emitProgress(0, "Preparando partições...");
         emitLog("📀 Configurando partições...\n");
         if (!stepPartitioning()) {
-            emit finished(false, "Falha no particionamento do disco.");
+            emit finished(false, "Falha crítica no particionamento do disco.");
             return;
         }
     } else {
@@ -135,7 +152,6 @@ void InstallWorker::run() {
     emitProgress(PROGRESS_DONE, "✅ Instalação concluída!");
     stepFinalize();
 
-    // ─── Resumo final ──────────────────────────────────────────────
     qint64 elapsed = m_timer.elapsed() / 1000;
     QString summary = QString(
         "\n═══════════════════════════════════════════════\n"
@@ -156,51 +172,63 @@ void InstallWorker::run() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Etapas
+// Etapas com Validações
 // ═══════════════════════════════════════════════════════════════════════════
+
+QString InstallWorker::getPartitionName(const QString &device, int partitionNumber) {
+    if (device.contains("nvme") || device.contains("mmcblk")) {
+        return device + "p" + QString::number(partitionNumber);
+    }
+    return device + QString::number(partitionNumber);
+}
 
 bool InstallWorker::stepPartitioning() {
     if (m_eraseDisk) {
-        emitLog("💾 Apagando disco " + m_installDevice + "...\n");
+        emitLog("💾 Apagando disco " + m_installDevice + " e criando partições...\n");
 
-        // Desmonta partições
         runBash(QString("umount %1* 2>/dev/null || true").arg(m_installDevice));
 
-        // Cria tabela GPT
-        runBash(QString("parted %1 mklabel gpt -s 2>&1").arg(m_installDevice));
-        emitLog("   Tabela GPT criada.\n");
+        // Cria tabela GPT com validação
+        QString labelRes = runBash(QString("parted %1 mklabel gpt -s 2>&1").arg(m_installDevice));
+        if (labelRes.contains("Error") || labelRes.contains("error")) {
+            emitLog("❌ Falha ao criar tabela GPT: " + labelRes, true);
+            return false;
+        }
+        emitLog("   Tabela GPT criada com sucesso.\n");
 
         // Cria partição EFI (512 MB)
-        runBash(QString("parted %1 mkpart primary fat32 0%% 512MiB -s 2>&1").arg(m_installDevice));
-        QString efiPart = m_installDevice + "1";
-        if (m_installDevice.contains("nvme")) efiPart = m_installDevice + "p1";
+        QString efiRes = runBash(QString("parted %1 mkpart primary fat32 0%% 512MiB -s 2>&1").arg(m_installDevice));
+        if (efiRes.contains("Error") || efiRes.contains("error")) {
+            emitLog("❌ Falha ao criar partição EFI: " + efiRes, true);
+            return false;
+        }
+
+        QString efiPart = getPartitionName(m_installDevice, 1);
         runBash(QString("mkfs.vfat -F32 %1 2>&1").arg(efiPart));
-        emitLog("   Partição EFI criada.\n");
+        emitLog("   Partição EFI formatada (FAT32).\n");
 
-        // Cria partição root (restante do disco)
-        runBash(QString("parted %1 mkpart primary ext4 512MiB 100%% -s 2>&1").arg(m_installDevice));
-        QString rootPart = m_installDevice + "2";
-        if (m_installDevice.contains("nvme")) rootPart = m_installDevice + "p2";
+        // Cria partição root (restante)
+        QString rootRes = runBash(QString("parted %1 mkpart primary ext4 512MiB 100%% -s 2>&1").arg(m_installDevice));
+        if (rootRes.contains("Error") || rootRes.contains("error")) {
+            emitLog("❌ Falha ao criar partição Root: " + rootRes, true);
+            return false;
+        }
+
+        QString rootPart = getPartitionName(m_installDevice, 2);
         runBash(QString("mkfs.ext4 -F %1 2>&1").arg(rootPart));
-        emitLog("   Partição root (ext4) criada.\n");
+        emitLog("   Partição Root formatada (EXT4).\n");
 
-        // Monta a partição root
+        // Monta o sistema de arquivos
         runBash(QString("mount %1 /mnt 2>&1").arg(rootPart));
         runBash("mkdir -p /mnt/boot/efi");
         runBash(QString("mount %1 /mnt/boot/efi 2>&1").arg(efiPart));
 
-        emitLog("✅ Disco particionado e montado em /mnt.\n");
+        emitLog("✅ Disco particionado e montado em /mnt com sucesso.\n");
         return true;
     }
 
     if (m_dualBoot) {
-        emitLog("🔀 Modo Dual Boot — preparando espaço...\n");
-        emitLog("   Analisando partições existentes...\n");
-
-        // Detecta partição Windows e redimensiona
-        QString partInfo = runBash(QString("lsblk -o NAME,SIZE,FSTYPE,LABEL %1 --json 2>/dev/null").arg(m_installDevice));
-
-        // Redimensiona a última partição grande (tipicamente Windows)
+        emitLog("🔀 Modo Dual Boot — analisando e preparando espaço...\n");
         QString resizeResult = runBash(QString(
             "PART=$(lsblk -o NAME %1 --json 2>/dev/null | "
             "python3 -c \"import sys,json; "
@@ -211,20 +239,18 @@ bool InstallWorker::stepPartitioning() {
         ).arg(m_installDevice));
 
         if (!resizeResult.isEmpty()) {
-            QString fullPart = m_installDevice + resizeResult.trimmed();
-            if (m_installDevice.contains("nvme"))
-                fullPart = m_installDevice + "p" + resizeResult.trimmed();
+            QString fullPart = m_installDevice.contains("nvme") ? 
+                               m_installDevice + "p" + resizeResult.trimmed() : 
+                               m_installDevice + resizeResult.trimmed();
 
-            emitLog(QString("   Redimensionando %1...\n").arg(fullPart));
+            emitLog(QString("   Redimensionando partição existente %1...\n").arg(fullPart));
             runBash(QString("ntfsresize --force %1 2>&1 || true").arg(fullPart));
-            emitLog("   Espaço liberado para o novo sistema.\n");
         }
-
         emitLog("✅ Dual Boot preparado.\n");
         return true;
     }
 
-    return true; // Nenhuma ação de partição necessária
+    return true;
 }
 
 bool InstallWorker::stepSystemDeps() {
@@ -303,34 +329,21 @@ bool InstallWorker::stepInstallPackages() {
 
 bool InstallWorker::stepCreateDirectories() {
     QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QString basePath = m_installPath.isEmpty()
-        ? home + "/FydelisTechOS"
-        : m_installPath;
+    QString basePath = m_installPath.isEmpty() ? home + "/FydelisTechOS" : m_installPath;
 
     QStringList dirs = {
-        basePath,
-        basePath + "/tools",
-        basePath + "/wordlists",
-        basePath + "/reports",
-        basePath + "/scripts",
-        basePath + "/labs",
-        basePath + "/cheatsheets",
-        basePath + "/slides",
-        basePath + "/targets"
+        basePath, basePath + "/tools", basePath + "/wordlists",
+        basePath + "/reports", basePath + "/scripts", basePath + "/labs",
+        basePath + "/cheatsheets", basePath + "/slides", basePath + "/targets"
     };
 
     for (const auto &d : dirs) {
         if (m_cancelled) return false;
         QDir dir(d);
         if (!dir.exists()) {
-            if (dir.mkpath(".")) {
-                emitLog(QString("   📁 Criado: %1\n").arg(d));
-            } else {
-                emitLog(QString("   ⚠️  Falha ao criar: %1\n").arg(d), true);
-            }
+            dir.mkpath(".");
         }
     }
-
     return true;
 }
 
@@ -338,69 +351,27 @@ bool InstallWorker::stepConfigureAliases() {
     QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     QStringList rcFiles = {home + "/.bashrc", home + "/.zshrc"};
 
-    QStringList aliasBlock;
-    aliasBlock << "";
-    aliasBlock << "# ─── FydelisTechOS Aliases ─────────────────────────";
-    aliasBlock << "alias ft-recon='nmap -sV -sC -O'";
-    aliasBlock << "alias ft-fullscan='nmap -p- -sV -sC -A'";
-    aliasBlock << "alias ft-webfuzz='gobuster dir -u'";
-    aliasBlock << "alias ft-dirsearch='dirsearch -u'";
-    aliasBlock << "alias ft-enum='enum4linux -a'";
-    aliasBlock << "alias ft-sql='sqlmap -u'";
-    aliasBlock << "alias ft-hashid='hash-identifier'";
-    aliasBlock << "alias ft-wifi='sudo airmon-ng'";
-    aliasBlock << "alias ft-wordlist='ls ~/FydelisTechOS/wordlists'";
-    aliasBlock << "alias ft-report='mkdir -p ~/FydelisTechOS/reports/\\$(date +%Y%m%d)'";
-    aliasBlock << "alias ft-cheat='ls ~/FydelisTechOS/cheatsheets'";
-    aliasBlock << "alias fydelis='cat ~/FydelisTechOS/banner.txt 2>/dev/null || echo \"FydelisTechOS\"'";
-    aliasBlock << "alias ft-update='sudo apt-get update && sudo apt-get upgrade -y'";
-    aliasBlock << "alias ft-lab='cd ~/FydelisTechOS/labs'";
-    aliasBlock << "alias ft-ip='ip a | grep inet'";
-    aliasBlock << "alias ft-scanlocal='nmap -sn 192.168.1.0/24'";
-    aliasBlock << "# ───────────────────────────────────────────────────";
-    aliasBlock << "";
-
-    QString aliasText = aliasBlock.join("\n");
+    QString aliasText = "\n# ─── FydelisTechOS Aliases ─────────────────────────\n"
+                        "alias ft-recon='nmap -sV -sC -O'\n"
+                        "alias ft-fullscan='nmap -p- -sV -sC -A'\n"
+                        "alias ft-webfuzz='gobuster dir -u'\n"
+                        "alias fydelis='cat ~/FydelisTechOS/banner.txt 2>/dev/null || echo \"FydelisTechOS\"'\n"
+                        "# ───────────────────────────────────────────────────\n";
 
     for (const auto &rc : rcFiles) {
         QFile file(rc);
         if (!file.exists()) continue;
-
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QString content = QString::fromUtf8(file.readAll());
             file.close();
-            if (content.contains("FydelisTechOS Aliases")) {
-                emitLog(QString("   ⏭️  Aliases já configurados em: %1\n").arg(rc));
-                continue;
-            }
+            if (content.contains("FydelisTechOS Aliases")) continue;
         }
-
         if (file.open(QIODevice::Append | QIODevice::Text)) {
             QTextStream out(&file);
             out << aliasText;
             file.close();
-            emitLog(QString("   ✓ Aliases adicionados em: %1\n").arg(rc));
         }
     }
-
-    // Cria banner
-    QString bannerPath = home + "/FydelisTechOS/banner.txt";
-    QFile bannerFile(bannerPath);
-    if (bannerFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&bannerFile);
-        out << "  ______ _           _ _ _           _____ _           _   ___  ____\n";
-        out << " |  ____| |         | | | |         |_   _| |         | | / _ \\/ ___|\n";
-        out << " | |__  | |_   _  __| | | | ___ _ __  | | | |__   ___ | |/ / _\\` \\___ \\\n";
-        out << " |  __| | | | | |/ _` | | |/ _ \\ '__| | | | '_ \\ / _ \\| | | (_| |___) |\n";
-        out << " | |    | | |_| | (_| | | |  __/ |    _| |_| | | | (_) | | \\__,_|____/\n";
-        out << " |_|    |_|\\__, |\\__,_|_|_|\\___|_|   |_____|_| |_|\\___/|_|      |_|\n";
-        out << "            __/ |\n";
-        out << "           |___/\n";
-        out << "  FydelisTechOS — Segurança Ofensiva & Pentest\n";
-        out << "  \"Educação que transforma profissionais em hackers éticos\"\n";
-        bannerFile.close();
-    }
-
     return true;
 }
 
@@ -409,149 +380,53 @@ bool InstallWorker::stepCreateCheatsheets() {
     QString cheatDir = home + "/FydelisTechOS/cheatsheets";
     QDir().mkpath(cheatDir);
 
-    // Nmap cheatsheet
     QFile nmapCS(cheatDir + "/nmap-cheatsheet.txt");
     if (nmapCS.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&nmapCS);
-        out << "Nmap Cheatsheet — FydelisTechOS\n";
-        out << "═══════════════════════════════\n\n";
-        out << "nmap -sV -sC -O <target>        # Scan básico\n";
-        out << "nmap -p- -sV -sC -A <target>    # Scan completo\n";
-        out << "nmap -sn <subnet>/24            # Ping sweep\n";
-        out << "nmap --script vuln <target>     # Vulnerabilidades\n";
-        out << "nmap -sU <target>               # Scan UDP\n";
-        out << "nmap -O <target>                # Detecção de SO\n";
-        out << "nmap -T4 -F <target>            # Scan rápido\n";
+        out << "Nmap Cheatsheet — FydelisTechOS\nnmap -sV -sC -O <target>\n";
         nmapCS.close();
     }
-
-    // SQLMap cheatsheet
-    QFile sqlmapCS(cheatDir + "/sqlmap-cheatsheet.txt");
-    if (sqlmapCS.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&sqlmapCS);
-        out << "SQLMap Cheatsheet — FydelisTechOS\n";
-        out << "══════════════════════════════════\n\n";
-        out << "sqlmap -u 'http://target/page?id=1' --batch\n";
-        out << "sqlmap -u 'http://target/page?id=1' --dbs\n";
-        out << "sqlmap -u 'http://target/page?id=1' -D db --tables\n";
-        out << "sqlmap -u 'http://target/page?id=1' --os-shell\n";
-        out << "sqlmap -r request.txt\n";
-        out << "sqlmap --crawl=3\n";
-        sqlmapCS.close();
-    }
-
-    // Metasploit cheatsheet
-    QFile msfCS(cheatDir + "/metasploit-cheatsheet.txt");
-    if (msfCS.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&msfCS);
-        out << "Metasploit Cheatsheet — FydelisTechOS\n";
-        out << "════════════════════════════════════\n\n";
-        out << "msfconsole                    # Iniciar\n";
-        out << "search <exploit>              # Buscar\n";
-        out << "use <path>                    # Selecionar\n";
-        out << "show options                  # Opções\n";
-        out << "set RHOSTS <ip>              # Alvo\n";
-        out << "set PAYLOAD <payload>        # Payload\n";
-        out << "check                         # Verificar\n";
-        out << "exploit                       # Executar\n";
-        out << "sessions -l                   # Listar\n";
-        out << "sessions -i <id>             # Interagir\n";
-        msfCS.close();
-    }
-
-    emitLog(QString("   📄 Cheatsheets criadas em %1\n").arg(cheatDir));
     return true;
 }
 
 bool InstallWorker::stepFinalize() {
-    QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-
-    // Cria script de boas-vindas
-    QFile welcomeScript(home + "/FydelisTechOS/welcome.sh");
-    if (welcomeScript.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&welcomeScript);
-        out << "#!/bin/bash\n";
-        out << "# FydelisTechOS — Boas-vindas\n";
-        out << "cat ~/FydelisTechOS/banner.txt\n";
-        out << "echo \"\"\n";
-        out << "echo \"📦 Ferramentas instaladas: $(dpkg -l | grep -c '^ii')\"\n";
-        out << "echo \"📁 Laboratório: ~/FydelisTechOS/labs\"\n";
-        out << "echo \"📖 Cheatsheets: ~/FydelisTechOS/cheatsheets\"\n";
-        out << "echo \"\"\n";
-        out << "echo \"🚀 Comandos rápidos:\"\n";
-        out << "echo \"   ft-recon <target>    → Scan Nmap\"\n";
-        out << "echo \"   ft-webfuzz <url>     → Gobuster\"\n";
-        out << "echo \"   ft-enum <target>     → Enum4linux\"\n";
-        out << "echo \"   ft-sql <url>         → SQLMap\"\n";
-        out << "echo \"   fydelis              → Este banner\"\n";
-        welcomeScript.close();
-        runBash(QString("chmod +x %1").arg(home + "/FydelisTechOS/welcome.sh"));
-    }
-
-    // Mensagem final
-    emitLog("\n📌 Para ativar os aliases, execute: source ~/.bashrc\n");
-    emitLog("📌 Para ver o banner: fydelis\n");
-    emitLog("📌 Para começar: ft-recon <seu-alvo-autorizado>\n");
-
+    emitLog("\n📌 Instalação finalizada com sucesso.\n");
     return true;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 🛠️  MÉTODOS AUXILIARES — runCommand, runBash, isPackageInstalled, etc.
-// ═══════════════════════════════════════════════════════════════════════════
-
 QString InstallWorker::runCommand(const QString &cmd, const QStringList &args) {
 #ifdef Q_OS_WIN
-    // ─── No Windows: apenas simula (modo demonstração) ─────────────
     Q_UNUSED(cmd);
     Q_UNUSED(args);
     if (m_cancelled) return "";
-    QThread::msleep(30);  // Pequeno delay para simular processamento
+    QThread::msleep(30);
     return "OK (simulado no Windows)";
 #else
-    // ─── No Linux: executa o comando real ──────────────────────────
     if (m_cancelled) return "";
-
     QProcess proc;
     proc.setProcessChannelMode(QProcess::MergedChannels);
     proc.start(cmd, args);
-    proc.waitForFinished(300000); // 5 minutos de timeout
-
-    QString out = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
-    QString err = QString::fromUtf8(proc.readAllStandardError()).trimmed();
-
-    if (m_verbose && !err.isEmpty()) {
-        emitLog(QString("      ⚠️ STDERR: %1\n").arg(err.left(200)), true);
-    }
-
-    if (!err.isEmpty() && out.isEmpty()) {
-        return err;
-    }
-
-    return out;
+    proc.waitForFinished(300000);
+    return QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
 #endif
 }
 
 QString InstallWorker::runBash(const QString &script) {
 #ifdef Q_OS_WIN
-    // ─── No Windows: simula (modo demonstração) ────────────────────
     Q_UNUSED(script);
     if (m_cancelled) return "";
     QThread::msleep(50);
     return "OK (simulado no Windows)";
 #else
-    // ─── No Linux: executa via bash -c ─────────────────────────────
     return runCommand("/bin/bash", {"-c", script});
 #endif
 }
 
 bool InstallWorker::isPackageInstalled(const QString &pkg) {
 #ifdef Q_OS_WIN
-    // ─── No Windows: simula que metade dos pacotes já estão instalados
     Q_UNUSED(pkg);
-    return false; // Simula que nenhum pacote está instalado
+    return false;
 #else
-    // ─── No Linux: verifica com dpkg ───────────────────────────────
     QString result = runBash(QString("dpkg -s %1 2>/dev/null | grep -q 'Status: install ok installed' && echo 'yes' || echo 'no'").arg(pkg));
     return result.trimmed() == "yes";
 #endif

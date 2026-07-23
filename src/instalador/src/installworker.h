@@ -44,23 +44,24 @@ signals:
 
 private:
     // ─── Etapas da instalação ──────────────────────────────────────
-    bool stepPartitioning();        // Particiona o disco
-    bool stepSystemDeps();          // Dependências do sistema
-    bool stepUpdatePackageList();   // apt-get update
-    bool stepInstallPackages();     // Instala ferramentas selecionadas
-    bool stepCreateDirectories();   // Cria estrutura de diretórios
-    bool stepConfigureAliases();    // Configura aliases no bash/zsh
-    bool stepCreateCheatsheets();   // Cria cheatsheets educacionais
-    bool stepFinalize();            // Finalização
+    bool stepPartitioning();        
+    bool stepSystemDeps();          
+    bool stepUpdatePackageList();   
+    bool stepInstallPackages();     
+    bool stepCreateDirectories();   
+    bool stepConfigureAliases();    
+    bool stepCreateCheatsheets();   
+    bool stepFinalize();            
 
     // ─── Utilitários ───────────────────────────────────────────────
     QString runCommand(const QString &cmd, const QStringList &args = {});
     QString runBash(const QString &script);
     bool isPackageInstalled(const QString &pkg);
+    QString getPartitionName(const QString &device, int partitionNumber);
     void emitProgress(int percent, const QString &status);
     void emitLog(const QString &msg, bool isErr = false);
 
-    // ─── Estado ────────────────────────────────────────────────────
+    // ─── Estado ────────────────────────────────────────────────    
     QProcess    *m_process;
     QStringList  m_packages;
     QString      m_installDevice;
