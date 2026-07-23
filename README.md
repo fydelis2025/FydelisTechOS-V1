@@ -12,6 +12,12 @@ O **FydelisTechOS** é um sistema operacional GNU/Linux customizado e focado em 
 
 ---
 
+## 📸 Interface do Sistema
+
+<p align="center">
+  <img src="https://github.com/fydelis2025/FydelisTechOS-V1/blob/main/background.png" alt="FydelisTechOS Dashboard" width="100%">
+</p>
+
 ## 🚀 Arquitetura e Principais Recursos
 
 O ecossistema do FydelisTechOS integra ferramentas nativas de ponta para operadores de segurança e entusiastas de tecnologia:
