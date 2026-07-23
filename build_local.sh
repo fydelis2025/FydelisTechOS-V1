@@ -16,7 +16,7 @@ echo "=== 1. Garantindo dependências do live-build no sistema ==="
 apt-get update
 apt-get install -y --no-install-recommends \
   live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-  debian-archive-keyring debian-keyring curl findutils coreutils cpio nasm gcc g++ make git sassc
+  debian-archive-keyring debian-keyring curl findutils coreutils cpio nasm gcc g++ make git sassc cmake qt6-base-dev
 
 # 2. Sanitização de quebras de linha
 echo "=== 2. Sanitizando quebras de linha (CRLF -> LF) ==="
@@ -70,7 +70,7 @@ gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
 python3 python3-pip python3-requests python3-setuptools python3-wheel python3-pyqt5
 
 # Compilação
-build-essential nasm gcc g++ make cmake
+build-essential nasm gcc g++ make cmake qt6-base-dev
 EOF
 
 echo "=== 4. Configurar Live Build ==="
@@ -123,6 +123,45 @@ mkdir -p config/includes.chroot/etc/skel/Desktop/
 mkdir -p config/bootloaders/grub/
 mkdir -p config/includes.binary/boot/grub/
 
+# === Compilando e Integrando o Instalador Qt 6 do FydelisTechOS ===
+if [ -d "src/instalador" ]; then
+    echo "=== Compilando o Instalador Gráfico (C++ / Qt 6) ==="
+    cd src/instalador
+    rm -rf build
+    mkdir build
+    cd build
+    cmake ..
+    cmake --build . --config Release
+    cd ../../..
+
+    # Cria a pasta de destino no chroot da ISO
+    mkdir -p config/includes.chroot/opt/fydel/instalador/
+    mkdir -p config/includes.chroot/usr/local/bin/
+
+    # Copia o binário compilado
+    if [ -f "src/instalador/build/fydelistechos-installer" ]; then
+        cp src/instalador/build/fydelistechos-installer config/includes.chroot/opt/fydel/instalador/
+    elif [ -f "src/instalador/build/bin/fydelistechos-installer" ]; then
+        cp src/instalador/build/bin/fydelistechos-installer config/includes.chroot/opt/fydel/instalador/
+    fi
+
+    # Copia a pasta de slides para o diretório correto que o instalador procura
+    if [ -d "src/instalador/slide" ]; then
+        cp -r src/instalador/slide config/includes.chroot/opt/fydel/instalador/slides
+    elif [ -d "src/instalador/slides" ]; then
+        cp -r src/instalador/slides config/includes.chroot/opt/fydel/instalador/slides
+    fi
+
+    # Cria o link de atalho global no PATH do sistema da ISO
+    cat << 'EOF' > config/includes.chroot/usr/local/bin/fydel-install
+#!/bin/bash
+cd /opt/fydel/instalador
+./fydelistechos-installer "$@"
+EOF
+    chmod +x config/includes.chroot/usr/local/bin/fydel-install
+    chmod +x config/includes.chroot/opt/fydel/instalador/fydelistechos-installer 2>/dev/null || true
+fi
+
 # Copia o ecossistema completo do FydelisLab para a ISO
 if [ -d "sistema/FydelisLab" ]; then
     mkdir -p config/includes.chroot/opt/fydelislab/
@@ -158,7 +197,6 @@ if [ -d "ferramentas/fydelis-ai/tools" ] && [ "$(ls -A ferramentas/fydelis-ai/to
 fi
 
 # Copia utilitários, instalador e interfaces gráficas PyQt5
-[ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/fydel-install.sh
 [ -f "src/sistema/FydelisSynaptic.py" ] && cp src/sistema/FydelisSynaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic.py
 [ -f "src/sistema/FydelisPackage.py" ] && cp src/sistema/FydelisPackage.py config/includes.chroot/usr/local/bin/fydel-package.py
 [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/fydel_ai.py
@@ -169,7 +207,6 @@ chmod +x config/includes.chroot/usr/local/bin/fydel-control.py 2>/dev/null || tr
 chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
 chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
-ln -sf /usr/local/bin/fydel-install.sh config/includes.chroot/usr/local/bin/fydel-install
 ln -sf /usr/local/bin/fydel-synaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic
 ln -sf /usr/local/bin/fydel_ai.py config/includes.chroot/usr/local/bin/fydel-ai
 # Cria um link simbólico limpo no PATH
@@ -355,10 +392,8 @@ if [ -d /usr/local/src/fydel-terminal ]; then
 fi
 
 chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
-chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
 
 ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
-ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
 
 # ── CONFIGURANDO AUTO-START DO INSTALADOR NO PRIMEIRO BOOT ──
 mkdir -p /etc/skel/.config/autostart/
