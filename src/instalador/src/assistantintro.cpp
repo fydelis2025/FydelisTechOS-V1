@@ -6,7 +6,7 @@ AssistantIntro::AssistantIntro(QWidget *parent)
     , m_index(0)
 {
     // Texto imersivo da assistente do FydelisTechOS
-    m_fullText = "Olá, operador! Sou a IA assistente do FydelisTechOS.\n"
+    m_fullText = "Olá, eu sou o Fydelis o seu agente virtual! Sou a IA assistente do FydelisTechOS.\n"
                  "Estou aqui para guiar você na configuração e implantação\n"
                  "do seu ambiente de segurança ofensiva.\n\n"
                  "Tudo pronto para iniciarmos a missão?";

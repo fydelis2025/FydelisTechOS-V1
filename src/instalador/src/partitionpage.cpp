@@ -57,7 +57,7 @@ void PartitionPage::setupUI() {
 
     mainLayout->addWidget(typeGroup);
     
-    // Correção do QOverload para Qt 6
+    // Conexão do grupo de botões
     connect(m_typeGroup, &QButtonGroup::idClicked,
         this, &PartitionPage::onInstallTypeChanged);
 
@@ -107,7 +107,7 @@ void PartitionPage::setupUI() {
 
     connect(m_dualBootSlider, &QSlider::valueChanged, this, &PartitionPage::onDualBootSliderChanged);
     connect(m_dualBootDiskCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this]() { updateDiskVisualization(); updateSummary(); });
+            this, [this](int index) { onDiskSelected(index); });
 
     m_typeStack->addWidget(dualBootPage);
 
@@ -127,7 +127,7 @@ void PartitionPage::setupUI() {
     erLayout->addWidget(m_eraseInfoLabel);
 
     connect(m_eraseDiskCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this]() { updateDiskVisualization(); updateSummary(); });
+            this, [this](int index) { onDiskSelected(index); });
 
     m_typeStack->addWidget(erasePage);
 
@@ -171,7 +171,7 @@ void PartitionPage::setupUI() {
     manLayout->addLayout(manualBtnLayout);
 
     connect(m_manualDiskCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this]() { populatePartitionTable(); updateDiskVisualization(); });
+            this, [this](int index) { onDiskSelected(index); populatePartitionTable(); });
     connect(m_partitionTable, &QTableWidget::cellClicked,
             this, [this](int row, int) {
                 if (row >= 0 && row < m_disks[m_manualDiskCombo->currentIndex()].partitions.size())
@@ -284,10 +284,12 @@ void PartitionPage::populatePartitionTable() {
 }
 
 void PartitionPage::updateDiskVisualization() {
-    int diskIdx = m_selectedDiskIndex;
-    if (diskIdx < 0 || diskIdx >= m_disks.size()) return;
+    // Proteção contra índice inválido
+    if (m_disks.isEmpty() || m_selectedDiskIndex < 0 || m_selectedDiskIndex >= m_disks.size()) {
+        return;
+    }
 
-    auto disk = m_disks[diskIdx];
+    auto disk = m_disks[m_selectedDiskIndex];
 
     if (isDualBootSelected()) {
         int val = m_dualBootSlider->value();
@@ -305,17 +307,18 @@ void PartitionPage::onInstallTypeChanged(int id) {
     m_actions.clear();
 
     switch (id) {
-    case 0: { // Dual Boot
-        int idx = m_dualBootDiskCombo->currentIndex();
-        if (idx >= 0 && idx < m_dualBootOptions.size()) {
-            const auto &opt = m_dualBootOptions[idx];
-            m_dualBootSlider->setMaximum(static_cast<int>(opt.freeForNew / (1024*1024*1024)));
-            m_dualBootSlider->setValue(static_cast<int>(opt.suggestedNewSize / (1024*1024*1024)));
-            onDualBootSliderChanged(m_dualBootSlider->value());
-        }
+    case 0: // Dual Boot
         m_selectedDiskIndex = m_dualBootDiskCombo->currentIndex();
+        {
+            int idx = m_selectedDiskIndex;
+            if (idx >= 0 && idx < m_dualBootOptions.size()) {
+                const auto &opt = m_dualBootOptions[idx];
+                m_dualBootSlider->setMaximum(static_cast<int>(opt.freeForNew / (1024*1024*1024)));
+                m_dualBootSlider->setValue(static_cast<int>(opt.suggestedNewSize / (1024*1024*1024)));
+                onDualBootSliderChanged(m_dualBootSlider->value());
+            }
+        }
         break;
-    }
     case 1: // Apagar disco
         m_selectedDiskIndex = m_eraseDiskCombo->currentIndex();
         break;
@@ -330,7 +333,14 @@ void PartitionPage::onInstallTypeChanged(int id) {
 }
 
 void PartitionPage::onDiskSelected(int index) {
-    m_selectedDiskIndex = index;
+    if (index < 0) return;
+    
+    switch (m_typeGroup->checkedId()) {
+    case 0: m_selectedDiskIndex = m_dualBootDiskCombo->currentIndex(); break;
+    case 1: m_selectedDiskIndex = m_eraseDiskCombo->currentIndex(); break;
+    case 2: m_selectedDiskIndex = m_manualDiskCombo->currentIndex(); break;
+    }
+
     updateDiskVisualization();
     updateSummary();
 }
@@ -344,18 +354,12 @@ void PartitionPage::onDualBootSliderChanged(int value) {
         const auto &opt = m_dualBootOptions[idx];
         m_dualBootWindowsSizeLabel->setText(
             QString("Windows (~%1)").arg(PartitionManager::sizeHuman(opt.totalDiskSize - bytes)));
+        // Atribuição unificada sem conflito de sobrescrita
         m_dualBootNewSizeLabel->setText(
-            QString("FydelisTechOS: %1").arg(PartitionManager::sizeHuman(bytes)));
+            QString("FydelisTechOS: %1 GB").arg(gb));
         m_dualBootSizeLabel->setText(
-            QString("Espaço livre: %1 | Máximo: %2")
-                .arg(PartitionManager::sizeHuman(opt.freeForNew))
+            QString("Espaço livre / Máximo: %1")
                 .arg(PartitionManager::sizeHuman(opt.freeForNew)));
-    }
-
-    // Corrigido para usar m_dualBootSizeLabel ou m_dualBootNewSizeLabel corretamente sem erro de typo
-    // m_dualBootSizeLabel já é usado acima, então ajustamos conforme o layout original:
-    if (m_dualBootNewSizeLabel) {
-        m_dualBootNewSizeLabel->setText(QString("FydelisTechOS: %1 GB").arg(gb));
     }
 
     updateDiskVisualization();
@@ -364,7 +368,6 @@ void PartitionPage::onDualBootSliderChanged(int value) {
 
 void PartitionPage::onPartitionClicked(const PartitionInfo &part) {
     showPartitionDetails(part);
-    m_selectedDiskIndex = 0;
 }
 
 void PartitionPage::showPartitionDetails(const PartitionInfo &part) {
@@ -459,5 +462,5 @@ bool PartitionPage::isEraseDiskSelected() const {
 }
 
 void PartitionPage::onManualActionClicked() {
-    // Implemente a lógica dos botões manuais aqui, se necessário, ou deixe vazio apenas para compilar
+    // Espaço reservado para ações manuais
 }

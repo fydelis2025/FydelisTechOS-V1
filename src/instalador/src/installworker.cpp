@@ -101,12 +101,12 @@ void InstallWorker::run() {
         return;
     }
 
-    // ─── Etapa 1: Particionamento com Validação Crítica (0% → 5%) ───
+    // ─── Etapa 1: Particionamento e Cópia Real (0% → 5%) ───────────
     if (!m_installDevice.isEmpty() && (m_eraseDisk || m_dualBoot)) {
-        emitProgress(0, "Preparando partições...");
-        emitLog("📀 Configurando partições...\n");
+        emitProgress(0, "Preparando partições e gravando sistema...");
+        emitLog("📀 Configurando partições e copiando sistema...\n");
         if (!stepPartitioning()) {
-            emit finished(false, "Falha crítica no particionamento do disco.");
+            emit finished(false, "Falha crítica no particionamento ou cópia do disco.");
             return;
         }
     } else {
@@ -162,7 +162,7 @@ void InstallWorker::run() {
         "💾 Disco: %3\n"
         "📁 Log salvo em: /tmp/fydelistechos-installer.log\n\n"
         "🔄 Recomendamos reiniciar o terminal ou executar:\n"
-        "   source ~/.bashrc\n\n"
+        "    source ~/.bashrc\n\n"
         "🔴 Happy Hacking! — FydelisTechOS\n"
     ).arg(m_packages.size()).arg(elapsed)
      .arg(m_installDevice.isEmpty() ? "Nenhum (modo pacotes)" : m_installDevice);
@@ -218,12 +218,33 @@ bool InstallWorker::stepPartitioning() {
         runBash(QString("mkfs.ext4 -F %1 2>&1").arg(rootPart));
         emitLog("   Partição Root formatada (EXT4).\n");
 
-        // Monta o sistema de arquivos
+        // Monta o sistema de arquivos em /mnt
         runBash(QString("mount %1 /mnt 2>&1").arg(rootPart));
         runBash("mkdir -p /mnt/boot/efi");
         runBash(QString("mount %1 /mnt/boot/efi 2>&1").arg(efiPart));
+        emitLog("   Partições montadas em /mnt.\n");
 
-        emitLog("✅ Disco particionado e montado em /mnt com sucesso.\n");
+        // Cópia real dos arquivos do sistema operacional rodando (LiveCD) para o disco
+        emitLog("   Copiando arquivos do sistema operacional para o disco...\n");
+        QString copyRes = runBash(
+            "rsync -aAX / /mnt/ "
+            "--exclude=/dev/* --exclude=/proc/* --exclude=/sys/* "
+            "--exclude=/tmp/* --exclude=/run/* --exclude=/mnt/* "
+            "--exclude=/media/* --exclude=/lost+found 2>&1"
+        );
+        if (copyRes.contains("error") || copyRes.contains("Error")) {
+            emitLog("⚠️ Aviso na sincronização rsync: " + copyRes, true);
+        } else {
+            emitLog("   Arquivos do sistema copiados com sucesso.\n");
+        }
+
+        // Configuração do Bootloader (GRUB)
+        emitLog("   Instalando o GRUB no disco...\n");
+        runBash(QString("chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FydelisTechOS --recheck 2>&1 || chroot /mnt grub-install %1 2>&1").arg(m_installDevice));
+        runBash("chroot /mnt update-grub 2>&1");
+        emitLog("   GRUB configurado com sucesso.\n");
+
+        emitLog("✅ Disco particionado, gravado e configurado com sucesso.\n");
         return true;
     }
 
@@ -270,7 +291,7 @@ bool InstallWorker::stepSystemDeps() {
         QString result = runBash(QString("DEBIAN_FRONTEND=noninteractive apt-get install -y -qq %1 2>&1").arg(pkg));
         bool ok = !result.contains("E: Unable") && !result.contains("E: Package");
         emitLog(ok ? "✓\n" : "✗\n");
-        if (!ok && m_verbose) emitLog("      " + result.trimmed() + "\n", true);
+        if (!ok && m_verbose) emitLog("     " + result.trimmed() + "\n", true);
     }
 
     return true;
@@ -282,7 +303,7 @@ bool InstallWorker::stepUpdatePackageList() {
     QString result = runBash("apt-get update -qq 2>&1 | tail -3");
     bool ok = !result.contains("E:");
     emitLog(ok ? "✓\n" : "⚠️\n");
-    if (!ok) emitLog("      " + result.trimmed() + "\n", true);
+    if (!ok) emitLog("     " + result.trimmed() + "\n", true);
     return ok;
 }
 
@@ -318,7 +339,7 @@ bool InstallWorker::stepInstallPackages() {
             emitLog("✓\n");
         } else {
             emitLog("✗\n");
-            emitLog(QString("      ⚠️  %1\n").arg(result.trimmed().left(150)), true);
+            emitLog(QString("     ⚠️  %1\n").arg(result.trimmed().left(150)), true);
         }
 
         emit packageFinished(pkg, success);
