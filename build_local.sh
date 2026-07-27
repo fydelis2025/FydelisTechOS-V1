@@ -7,8 +7,11 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+PROJECT_DIR="/home/fydelis/Downloads/FydelisTechOS"
+cd "$PROJECT_DIR"
+
 echo "=========================================================="
-echo "🛡️  Iniciando Compilação Local NATIVA do FydelisTechOS V1.0 🛡️"
+echo "🛡️  Iniciando Compilação Local NATIVA do FydelisTechOS (KDE) 🛡️"
 echo "=========================================================="
 
 # 1. Instalar dependências necessárias direto no seu host
@@ -16,7 +19,8 @@ echo "=== 1. Garantindo dependências do live-build no sistema ==="
 apt-get update
 apt-get install -y --no-install-recommends \
   live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
-  debian-archive-keyring debian-keyring curl findutils coreutils cpio nasm gcc g++ make git sassc cmake qt6-base-dev
+  debian-archive-keyring debian-keyring curl findutils coreutils cpio nasm gcc g++ make git sassc cmake \
+  qtbase5-dev pkg-config libqt5widgets5
 
 # 2. Sanitização de quebras de linha
 echo "=== 2. Sanitizando quebras de linha (CRLF -> LF) ==="
@@ -25,52 +29,28 @@ find . -type f -name "*.txt" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 find . -type f -name "*.cpp" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 find . -type f -name "*.py" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 
-# 3. Preparar variáveis do live-build
+# 3. Preparar variáveis do live-build (Espelho do Brasil para estabilidade)
 export DEBIAN_FRONTEND=noninteractive
 export DEBIAN_DIST=bookworm
 export ARCH=amd64
-export MIRROR=http://deb.debian.org/debian/
-export SEC_MIRROR=http://deb.debian.org/debian-security/
+export MIRROR=http://ftp.br.debian.org/debian/
+export SEC_MIRROR=http://ftp.br.debian.org/debian-security/
 
 echo "=== 3. Preparar lista de pacotes otimizada ==="
 mkdir -p src/pacotes/
 cat > src/pacotes/lista_completa.txt << 'EOF'
-# Sistema base Debian e Inicialização Live USB
 live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring
-
-# Servidor Gráfico e Interface Mínima (GNOME / X11)
-xserver-xorg xserver-xorg-video-all xserver-xorg-input-all x11-xserver-utils gdm3 gnome-shell gnome-session nautilus gnome-terminal desktop-base gnome-shell-extension-prefs plymouth plymouth-themes
-
-# Ferramentas básicas
-nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils git dconf-cli gettext yad zenity sassc conky-all gnome-tweaks
-
-# Escritório e Multimídia
-libreoffice libreoffice-l10n-pt-br evince gpicview
-vlc vlc-l10n
-
-# Áudio, Microfone e Som
-pulseaudio pulseaudio-utils alsa-utils alsa-tools alsa-base pavucontrol pavucontrol-qt volumeicon-alsa
-
-# Bluetooth
+xserver-xorg xserver-xorg-video-all xserver-xorg-input-all x11-xserver-utils sddm kde-plasma-desktop plasma-workspace dolphin konsole kate desktop-base plymouth plymouth-themes
+nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils git dconf-cli gettext yad zenity sassc conky-all
+libreoffice libreoffice-l10n-pt-br evince gpicview vlc vlc-l10n
+pulseaudio pulseaudio-utils alsa-utils alsa-tools pavucontrol pavucontrol-qt volumeicon-alsa
 bluetooth bluez bluez-tools blueman
-
-# Rede e Internet
 firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
-
-# Discos e armazenamento
-gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
-
-# Segurança, Pentest e Frameworks
-wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto metasploit-framework binwalk foremost testdisk chkrootkit rkhunter
-
-# Sistema, Painel de Controle e configuração
-gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
-
-# Python, PyQt5 e Dependências para a FydelisTech-AI
-python3 python3-pip python3-requests python3-setuptools python3-wheel python3-pyqt5
-
-# Compilação
-build-essential nasm gcc g++ make cmake qt6-base-dev
+gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2
+wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap binwalk foremost testdisk chkrootkit rkhunter
+system-config-printer hardinfo lm-sensors udisks2 openssl
+python3 python3-pip python3-requests python3-setuptools python3-wheel python3-pyqt5 python3-psutil
+build-essential nasm gcc g++ make cmake qt6-base-dev libqt6core6 libqt6gui6 libqt6widgets6 qtbase5-dev pkg-config libqt5widgets5
 EOF
 
 echo "=== 4. Configurar Live Build ==="
@@ -116,63 +96,58 @@ mkdir -p config/includes.chroot/opt/fydelislab/docs/
 mkdir -p config/includes.chroot/opt/fydelislab/backgrounds/
 
 mkdir -p config/includes.chroot/opt/fydel/instalador/slides/
-mkdir -p config/includes.chroot/usr/share/themes/CyberHack/gnome-shell/
 mkdir -p config/includes.chroot/usr/share/backgrounds/fydel/
 mkdir -p config/includes.chroot/etc/skel/Desktop/
+mkdir -p config/includes.chroot/etc/skel/.config/autostart/
 
+mkdir -p config/bootloaders/grub-pc/
+mkdir -p config/bootloaders/grub-efi/
 mkdir -p config/bootloaders/grub/
 mkdir -p config/includes.binary/boot/grub/
 
-# === Compilando e Integrando o Instalador Qt 6 do FydelisTechOS ===
+# === Preparar código fonte do Instalador para ser compilado no Chroot ===
 if [ -d "src/instalador" ]; then
-    echo "=== Compilando o Instalador Gráfico (C++ / Qt 6) ==="
-    cd src/instalador
-    rm -rf build
-    mkdir build
-    cd build
-    cmake ..
-    cmake --build . --config Release
-    cd ../../..
+    echo "=== Copiando fonte do instalador para dentro do chroot ==="
+    mkdir -p config/includes.chroot/usr/local/src/fydel-installer/
+    cp -r src/instalador/* config/includes.chroot/usr/local/src/fydel-installer/
 
-    # Cria a pasta de destino no chroot da ISO
-    mkdir -p config/includes.chroot/opt/fydel/instalador/
-    mkdir -p config/includes.chroot/usr/local/bin/
-
-    # Copia o binário compilado
-    if [ -f "src/instalador/build/fydelistechos-installer" ]; then
-        cp src/instalador/build/fydelistechos-installer config/includes.chroot/opt/fydel/instalador/
-    elif [ -f "src/instalador/build/bin/fydelistechos-installer" ]; then
-        cp src/instalador/build/bin/fydelistechos-installer config/includes.chroot/opt/fydel/instalador/
-    fi
-
-    # Copia a pasta de slides para o diretório correto que o instalador procura
     if [ -d "src/instalador/slide" ]; then
-        cp -r src/instalador/slide config/includes.chroot/opt/fydel/instalador/slides
+        cp -r src/instalador/slide/* config/includes.chroot/opt/fydel/instalador/slides/ 2>/dev/null || true
     elif [ -d "src/instalador/slides" ]; then
-        cp -r src/instalador/slides config/includes.chroot/opt/fydel/instalador/slides
+        cp -r src/instalador/slides/* config/includes.chroot/opt/fydel/instalador/slides/ 2>/dev/null || true
     fi
 
-    # Cria o link de atalho global no PATH do sistema da ISO
     cat << 'EOF' > config/includes.chroot/usr/local/bin/fydel-install
 #!/bin/bash
 cd /opt/fydel/instalador
 ./fydelistechos-installer "$@"
 EOF
     chmod +x config/includes.chroot/usr/local/bin/fydel-install
-    chmod +x config/includes.chroot/opt/fydel/instalador/fydelistechos-installer 2>/dev/null || true
 fi
 
-# Copia o ecossistema completo do FydelisLab para a ISO
-if [ -d "sistema/FydelisLab" ]; then
-    mkdir -p config/includes.chroot/opt/fydelislab/
-    cp -r sistema/FydelisLab/* config/includes.chroot/opt/fydelislab/
+# === Preparar código fonte da Tela de Boas-Vindas para compilação no Chroot ===
+if [ -d "src/bem-vindo" ]; then
+    echo "=== Copiando fonte da Tela de Boas-Vindas para o chroot ==="
+    mkdir -p config/includes.chroot/usr/local/src/fydel-welcome/
+    cp -r src/bem-vindo/* config/includes.chroot/usr/local/src/fydel-welcome/
+fi
 
-  # Garante que o script principal e as pastas internas tenham permissão correta
-  chmod +x config/includes.chroot/opt/fydelislab/*.py 2>/dev/null || true
+# Atalho de inicialização automática da tela de boas-vindas
+cat << 'EOF' > config/includes.chroot/etc/skel/.config/autostart/fydelis-welcome.desktop
+[Desktop Entry]
+Type=Application
+Exec=/usr/local/bin/fydelis-welcome
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=FydelisTechOS Welcome
+Comment=Tela de Boas-Vindas do FydelisTechOS
+EOF
 
-  # Garante que as subpastas de banco e certificados existam e tenham permissão de escrita
-    mkdir -p config/includes.chroot/opt/fydelislab/bancos/
-    mkdir -p config/includes.chroot/opt/fydelislab/certificados/
+# === Copiando FydelisLab ===
+if [ -d "src/sistema/FydelisLab" ]; then
+    cp -r src/sistema/FydelisLab/* config/includes.chroot/opt/fydelislab/
+    chmod +x config/includes.chroot/opt/fydelislab/*.py 2>/dev/null || true
     chmod -R 777 config/includes.chroot/opt/fydelislab/bancos/
     chmod -R 777 config/includes.chroot/opt/fydelislab/certificados/
     chmod -R 777 config/includes.chroot/opt/fydelislab/scripts/
@@ -180,52 +155,46 @@ if [ -d "sistema/FydelisLab" ]; then
     chmod -R 777 config/includes.chroot/opt/fydelislab/backgrounds/
 fi
 
-# Copia o ecossistema FydelisAI e ferramentas em tools/
-if [ -d "ferramentas/fydelis-ai" ]; then
+# === Copiando FydelisAI e Ferramentas ===
+if [ -d "src/ferramentas/fydelis-ai" ]; then
   mkdir -p config/includes.chroot/opt/fydelis-ai/
-  cp -r ferramentas/fydelis-ai/* config/includes.chroot/opt/fydelis-ai/
-  
+  cp -r src/ferramentas/fydelis-ai/* config/includes.chroot/opt/fydelis-ai/
   if [ -f config/includes.chroot/opt/fydelis-ai/fydelis-ai.pl ]; then
     ln -sf /opt/fydelis-ai/fydelis-ai.pl config/includes.chroot/usr/local/bin/fydelis-ai
     chmod +x config/includes.chroot/opt/fydelis-ai/fydelis-ai.pl
   fi
 fi
 
-if [ -d "ferramentas/fydelis-ai/tools" ] && [ "$(ls -A ferramentas/fydelis-ai/tools 2>/dev/null)" ]; then
-  cp -r ferramentas/fydelis-ai/tools/* config/includes.chroot/usr/local/bin/fydelis-tools/
+if [ -d "src/ferramentas/fydelis-ai/tools" ] && [ "$(ls -A src/ferramentas/fydelis-ai/tools 2>/dev/null)" ]; then
+  cp -r src/ferramentas/fydelis-ai/tools/* config/includes.chroot/usr/local/bin/fydelis-tools/
   chmod -R +x config/includes.chroot/usr/local/bin/fydelis-tools/ 2>/dev/null || true
 fi
 
-# Copia utilitários, instalador e interfaces gráficas PyQt5
+# === Copiando Utilitários Python da pasta src/sistema/ ===
 [ -f "src/sistema/FydelisSynaptic.py" ] && cp src/sistema/FydelisSynaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic.py
 [ -f "src/sistema/FydelisPackage.py" ] && cp src/sistema/FydelisPackage.py config/includes.chroot/usr/local/bin/fydel-package.py
 [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/fydel_ai.py
-# Copia o Painel de Controle Personalizado para o Chroot
 [ -f "src/sistema/FydelisControl.py" ] && cp src/sistema/FydelisControl.py config/includes.chroot/usr/local/bin/fydelis-control.py
-chmod +x config/includes.chroot/usr/local/bin/fydel-control.py 2>/dev/null || true
 
 chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
 chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
 
 ln -sf /usr/local/bin/fydel-synaptic.py config/includes.chroot/usr/local/bin/fydel-synaptic
 ln -sf /usr/local/bin/fydel_ai.py config/includes.chroot/usr/local/bin/fydel-ai
-# Cria um link simbólico limpo no PATH
 ln -sf /usr/local/bin/fydelis-control.py config/includes.chroot/usr/local/bin/fydel-control
 
 echo "=== Criando Lançadores de Aplicativos, Menus e Logo ==="
 mkdir -p config/includes.chroot/usr/share/applications/
 
-# Copia a logo oficial para o sistema
 if [ -f "./logo_menu.png" ]; then
   cp ./logo_menu.png config/includes.chroot/usr/share/icons/fydel/branding/logo_menu.png
 fi
 
-# 1. Atalho para o Instalador do Sistema (Menu de Aplicativos)
 cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-install.desktop
 [Desktop Entry]
 Name=Instalar FydelisTechOS
 Comment=Instalar o sistema operacional no disco rígido
-Exec=gnome-terminal -- /usr/local/bin/fydel-install
+Exec=konsole --hold -e /usr/local/bin/fydel-install
 Icon=/usr/share/icons/fydel/branding/logo_menu.png
 Terminal=false
 Type=Application
@@ -233,12 +202,10 @@ Categories=System;
 StartupNotify=true
 EOF
 
-# 2. Copia o atalho também para a ÁREA DE TRABALHO (Desktop) padrão
 mkdir -p config/includes.chroot/etc/skel/Desktop/
 cp config/includes.chroot/usr/share/applications/fydel-install.desktop config/includes.chroot/etc/skel/Desktop/
 chmod +x config/includes.chroot/etc/skel/Desktop/fydel-install.desktop
 
-# 3. Atalho para o Gerenciador de Pacotes (Estilo Synaptic)
 cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-synaptic.desktop
 [Desktop Entry]
 Name=Gerenciador de Pacotes Fydelis
@@ -250,8 +217,6 @@ Type=Application
 Categories=System;Settings;
 StartupNotify=true
 EOF
-
-mkdir -p config/includes.chroot/usr/share/applications/
 
 cat << 'EOF' > config/includes.chroot/usr/share/applications/fydel-control.desktop
 [Desktop Entry]
@@ -270,13 +235,13 @@ if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
 fi
 
 if [ -f "./wallpaper.png" ]; then
+  mkdir -p config/includes.chroot/usr/share/wallpapers/FydelisTechOS/contents/images/
+  cp ./wallpaper.png config/includes.chroot/usr/share/wallpapers/FydelisTechOS/contents/images/background.png
   cp ./wallpaper.png config/includes.chroot/usr/share/backgrounds/fydel/wallpaper.png
 else
+  mkdir -p config/includes.chroot/usr/share/backgrounds/fydel/
   touch config/includes.chroot/usr/share/backgrounds/fydel/wallpaper.png
 fi
-
-[ -f "./theme.txt" ] && cp ./theme.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-[ -f "./colors.txt" ] && cp ./colors.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
 
 GRUB_ASSETS="src/sistema/grub/grub-theme-fydel"
 if [ -d "$GRUB_ASSETS" ]; then
@@ -285,32 +250,41 @@ if [ -d "$GRUB_ASSETS" ]; then
   [ -f "$GRUB_ASSETS/splash.png" ] && cp "$GRUB_ASSETS/splash.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
   [ -f "$GRUB_ASSETS/grub.png" ] && cp "$GRUB_ASSETS/grub.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
   
-  cp "$GRUB_ASSETS/splash.png" config/bootloaders/grub/splash.png
-  cp "$GRUB_ASSETS/splash.png" config/includes.binary/boot/grub/splash.png
+  cp "$GRUB_ASSETS/splash.png" config/bootloaders/grub/splash.png 2>/dev/null || true
+  cp "$GRUB_ASSETS/splash.png" config/includes.binary/boot/grub/splash.png 2>/dev/null || true
   mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
-  cp "$GRUB_ASSETS/splash.png" config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
+  cp "$GRUB_ASSETS/splash.png" config/includes.chroot/usr/share/plymouth/themes/fydel/background.png 2>/dev/null || true
 fi
 
-if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
-  cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
+# Configuração de Boot Dual (UEFI + Legacy BIOS) com GRUB
+echo "=== Configurando bootloaders para UEFI e Legacy ==="
+cat << 'EOF' > config/bootloaders/grub-pc/grub.cfg
+if loadfont /boot/grub/font.pf2 ; then
+    set gfxmode=auto
+    insmod efi_gop
+    insmod efi_uga
+    terminal_output gfxterm
 fi
 
-if [ -d "src/sistema/servicos_systemd" ] && [ "$(ls -A src/sistema/servicos_systemd 2>/dev/null)" ]; then
-  cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
-fi
+set theme=/boot/grub/themes/grub-theme-fydel/theme.txt
+export theme
 
-if [ -d "src/telas" ] && [ "$(ls -A src/telas 2>/dev/null)" ]; then
-  cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
-fi
+set menu_color_normal=cyan/blue
+set menu_color_highlight=white/cyan
 
-if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
-  cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
-fi
+menuentry "🛡️ FydelisTechOS - Testar (Modo Live)" {
+    linux /live/vmlinuz boot=live components quiet splash locales=pt_BR.UTF-8 keyboard-layout=br
+    initrd /live/initrd.img
+}
+menuentry "🚀 FydelisTechOS - Instalar no Disco Rígido" {
+    linux /live/vmlinuz boot=live components quiet splash fydel_install=true locales=pt_BR.UTF-8 keyboard-layout=br
+    initrd /live/initrd.img
+}
+EOF
 
-chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
-chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
+cp config/bootloaders/grub-pc/grub.cfg config/bootloaders/grub-efi/grub.cfg
 
-echo "=== 6. Criar Hooks internos ==="
+echo "=== 6. Criando Hooks internos (Compilação Nativa + Tema CyberHack) ==="
 mkdir -p config/hooks/normal
 cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
 #!/bin/bash
@@ -318,77 +292,54 @@ set -e
 
 find /usr/local/bin/ -type f -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 
-echo "=== [Hook] Clonando e instalando o Tema CyberHack ==="
-git clone https://git.disroot.org/eudaimon/CyberHack.git /tmp/CyberHack
-mkdir -p /usr/share/themes/CyberHack
-cp -r /tmp/CyberHack/gtk-2.0 /usr/share/themes/CyberHack/
-cp -r /tmp/CyberHack/gtk-3.0 /usr/share/themes/CyberHack/
-cp -r /tmp/CyberHack/xfwm4 /usr/share/themes/CyberHack/
-cp -r /tmp/CyberHack/cinnamon /usr/share/themes/CyberHack/ 2>/dev/null || true
-cp -r /tmp/CyberHack/metacity-1 /usr/share/themes/CyberHack/ 2>/dev/null || true
-cp /tmp/CyberHack/index.theme /usr/share/themes/CyberHack/
-
-mkdir -p /usr/share/Kvantum/CyberHack
-if [ -d "/tmp/CyberHack/Kvantum" ]; then
-    cp -r /tmp/CyberHack/Kvantum/* /usr/share/Kvantum/ 2>/dev/null || true
+echo "=== [Hook] Compilando o Instalador Qt6 dentro do Chroot ==="
+if [ -d /usr/local/src/fydel-installer ]; then
+    cd /usr/local/src/fydel-installer
+    rm -rf build
+    mkdir build
+    cd build
+    cmake ..
+    cmake --build . --config Release
+    
+    mkdir -p /opt/fydel/instalador/
+    if [ -f fydelistechos-installer ]; then
+        cp fydelistechos-installer /opt/fydel/instalador/
+    elif [ -f bin/fydelistechos-installer ]; then
+        cp bin/fydelistechos-installer /opt/fydel/instalador/
+    fi
+    chmod +x /opt/fydel/instalador/fydelistechos-installer
 fi
-rm -rf /tmp/CyberHack
+
+echo "=== [Hook] Compilando a Tela de Boas-Vindas Qt6 ==="
+if [ -d /usr/local/src/fydel-welcome ]; then
+    cd /usr/local/src/fydel-welcome
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build --config Release
+    
+    if [ -f build/fydelis-welcome ]; then
+        cp build/fydelis-welcome /usr/local/bin/fydelis-welcome
+    elif [ -f build/bin/fydelis-welcome ]; then
+        cp build/bin/fydelis-welcome /usr/local/bin/fydelis-welcome
+    fi
+    chmod +x /usr/local/bin/fydelis-welcome
+fi
+
+echo "=== [Hook] Clonando e instalando o Tema CyberHack ==="
+git clone https://git.disroot.org/eudaimon/CyberHack.git /tmp/CyberHack || true
+if [ -d /tmp/CyberHack ]; then
+    mkdir -p /usr/share/themes/CyberHack
+    cp -r /tmp/CyberHack/gtk-2.0 /usr/share/themes/CyberHack/ 2>/dev/null || true
+    cp -r /tmp/CyberHack/gtk-3.0 /usr/share/themes/CyberHack/ 2>/dev/null || true
+    cp /tmp/CyberHack/index.theme /usr/share/themes/CyberHack/ 2>/dev/null || true
+    rm -rf /tmp/CyberHack
+fi
 
 echo "=== [Hook] Configurando Ferramentas Fydelis no PATH ==="
 if [ -d /usr/local/bin/fydelis-tools ]; then
   chmod -R +x /usr/local/bin/fydelis-tools/ 2>/dev/null || true
 fi
 
-echo "=== [Hook] Instalando o Ollama ==="
-curl -fsSL https://ollama.com/install.sh | sh || true
-
-echo "=== [Hook] Inicializando o Ollama para baixar os modelos ==="
-ollama serve &
-sleep 15
-
-echo "=== [Hook] Baixando Modelo Gemma 2B ==="
-ollama pull gemma:2b-instruct-q4_K_M || true
-
-echo "=== [Hook] Baixando Modelo Llama 3.2 3B ==="
-ollama pull llama3.2:3b || true
-
-pkill ollama || true
-sleep 5
-
 apt-get purge -y desktop-base || true
-
-echo "=== [Hook] Configurando Plymouth ==="
-if [ -d /usr/share/plymouth/themes/fydel ]; then
-cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
-[Plymouth Theme]
-Name=FydelisTechOS Splash
-Description=Custom splash screen for FydelisTechOS
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/fydel
-ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
-PLY
-
-cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
-wallpaper_image = Image("background.png");
-screen_width = Window.GetWidth();
-screen_height = Window.GetHeight();
-resized_image = wallpaper_image.Scale(screen_width, screen_height);
-wallpaper_sprite = Sprite(resized_image);
-wallpaper_sprite.SetZ(-10);
-SCR
-
-plymouth-set-default-theme fydel || true
-fi
-
-echo "=== [Hook] Configurando GRUB ==="
-if [ -f /etc/default/grub ]; then
-  sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/' /etc/default/grub
-  sed -i 's/#GRUB_GFXMODE=.*/GRUB_GFXMODE=1024x768,auto/' /etc/default/grub
-  echo 'GRUB_THEME="/boot/grub/themes/grub-theme-fydel/theme.txt"' >> /etc/default/grub
-  update-grub || true
-fi
 
 echo "=== [Hook] Compilando Terminal Híbrido Fydel ==="
 if [ -d /usr/local/src/fydel-terminal ]; then
@@ -399,52 +350,24 @@ fi
 chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
 ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
 
-echo "=== [Hook] Injetando Estilização Estilo Cyberpunk/Glassmorphic (CyberHack) ==="
-cat << 'CSS' > /usr/share/themes/CyberHack/gnome-shell/gnome-shell.css
-#panel, .popup-menu-contents, .search-display, .window-picker, .dash-background {
-    background-color: rgba(16, 22, 47, 0.45) !important;
-    backdrop-filter: blur(25px) brightness(90%) !important;
-    border: 1px solid rgba(34, 211, 238, 0.25) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.6) !important;
-}
-
-.show-apps .overview-icon {
-    background-image: url("file:///usr/share/icons/fydel/branding/logo_menu.png") !important;
-    background-size: contain !important;
-    color: transparent !important;
-}
-
-.popup-menu-item:focused, .popup-menu-item:active {
-    background-color: rgba(106, 17, 203, 0.6) !important;
-    color: #ffffff !important;
-}
-
-.switch:checked {
-    background-color: #3700b3 !important;
-}
-
-.window-close, .window-minimize, .window-maximize {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 50% !important;
-}
-CSS
-
 echo "=== [Hook] Compilando e instalando Extensões Visuais (Dock e Blur) ==="
 cd /tmp
-git clone https://github.com/micheleg/dash-to-dock.git
-cd dash-to-dock && git checkout gnome-43 || true
-mkdir -p /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com
-make
-cp -r * /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com/
-cd /tmp && rm -rf dash-to-dock
+git clone https://github.com/micheleg/dash-to-dock.git || true
+if [ -d dash-to-dock ]; then
+    cd dash-to-dock && git checkout gnome-43 || true
+    mkdir -p /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com
+    make || true
+    cp -r * /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com/ 2>/dev/null || true
+    cd /tmp && rm -rf dash-to-dock
+fi
 
-git clone https://github.com/aunetx/blur-my-shell.git
-cd blur-my-shell && git checkout v43 || true
-mkdir -p /usr/share/gnome-shell/extensions/blur-my-shell@aunetx
-cp -r * /usr/share/gnome-shell/extensions/blur-my-shell@aunetx/
-cd /tmp && rm -rf blur-my-shell
+git clone https://github.com/aunetx/blur-my-shell.git || true
+if [ -d blur-my-shell ]; then
+    cd blur-my-shell && git checkout v43 || true
+    mkdir -p /usr/share/gnome-shell/extensions/blur-my-shell@aunetx
+    cp -r * /usr/share/gnome-shell/extensions/blur-my-shell@aunetx/ 2>/dev/null || true
+    cd /tmp && rm -rf blur-my-shell
+fi
 
 echo "=== [Hook] Injetando Configurações do Conky (Gráficos Laterais e Bloco de Código) ==="
 mkdir -p /etc/conky/
@@ -587,10 +510,6 @@ if [ -d /boot/grub ]; then
     find /boot/grub/ -type f -name "*.cfg" -exec sed -i 's/Debian GNU\/Linux/FydelisTechOS/g' {} + || true
     find /boot/grub/ -type f -name "*.cfg" -exec sed -i 's/Live System/Modo Live/g' {} + || true
 fi
-
-echo "export TERM=linux" >> /root/.bashrc
-echo -e "\nif [ -f /opt/fydel/telas/tela_boas_vindas.txt ]; then cat /opt/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
-echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
 EOF
 chmod +x config/hooks/normal/0500-build-system.hook.chroot
 
