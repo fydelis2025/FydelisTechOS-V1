@@ -7,9 +7,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Desativa o entrypoint automático do Qt para evitar conflito de símbolos globais (__argc) com o MinGW do Windows
-set(QT_DISABLE_WINMAIN_STDCALL ON)
-
 find_package(Qt6 COMPONENTS Widgets Core Gui Network REQUIRED)
 
 set(SOURCES
@@ -50,14 +47,17 @@ set(SOURCES
     # Catálogo
     src/tools.h
 	
-	# ── Adicione estes dois novos arquivos abaixo: ──
+    # Novos arquivos
     src/assistantintro.h
     src/assistantintro.cpp
 )
 
-add_executable(fydelistechos-installer WIN32 ${SOURCES})
+# Removido o WIN32 para gerar um executável padrão de Linux
+add_executable(fydelistechos-installer ${SOURCES})
 target_include_directories(fydelistechos-installer PRIVATE src)
-target_link_libraries(fydelistechos-installer PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network shell32 ole32 advapi32)
+
+# Removidas as bibliotecas do Windows (shell32, ole32, advapi32)
+target_link_libraries(fydelistechos-installer PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network)
 
 install(TARGETS fydelistechos-installer RUNTIME DESTINATION /usr/local/bin)
 install(FILES assets/fydelistechos.desktop DESTINATION /usr/share/applications)
