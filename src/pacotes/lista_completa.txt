@@ -1,39 +1,12 @@
-# Sistema base e Inicialização Live USB
 live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring debian-keyring
-
-# Servidor Gráfico e Interface Mínima (GNOME / X11)
-xserver-xorg xserver-xorg-video-all xserver-xorg-input-all x11-xserver-utils gdm3 gnome-shell gnome-session nautilus gnome-terminal desktop-base gnome-shell-extension-prefs plymouth plymouth-themes
-
-# Ferramentas básicas
-nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils git dconf-cli gettext yad zenity sassc conky-all gnome-tweaks
-
-# Escritório e Multimídia
-libreoffice libreoffice-l10n-pt-br evince gpicview
-vlc vlc-l10n
-
-# Áudio, Microfone e Som
-pulseaudio pulseaudio-utils alsa-utils alsa-tools alsa-base pavucontrol pavucontrol-qt volumeicon-alsa
-
-# Bluetooth
+xserver-xorg xserver-xorg-video-all xserver-xorg-input-all x11-xserver-utils sddm kde-plasma-desktop plasma-workspace dolphin konsole kate desktop-base plymouth plymouth-themes
+nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils git dconf-cli gettext yad zenity sassc conky-all
+libreoffice libreoffice-l10n-pt-br evince gpicview vlc vlc-l10n
+pulseaudio pulseaudio-utils alsa-utils alsa-tools pavucontrol pavucontrol-qt volumeicon-alsa
 bluetooth bluez bluez-tools blueman
-
-# Rede e Internet
 firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
-
-# Discos e armazenamento
-gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
-
-# Segurança e Pentest
-wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto metasploit-framework binwalk foremost testdisk chkrootkit rkhunter
-
-# Sistema e configuração
-gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl
-
-# Python, Pip e Dependências para a FydelisTech-AI
-python3 python3-pip python3-requests python3-setuptools python3-wheel
-
-# Compilação
-build-essential nasm gcc g++ make cmake
-
-# Python, PyQt5 e Dependências Gráficas do Qt5
-python3 python3-pip python3-requests python3-setuptools python3-wheel python3-pyqt5 python3-dbus.mainloop.pyqt5 libqt5gui5 libqt5widgets5 libqt5core5a libxcb-xinerama0 libgl1-mesa-dri libgl1-mesa-glx
+gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2
+wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap binwalk foremost testdisk chkrootkit rkhunter
+system-config-printer hardinfo lm-sensors udisks2 openssl
+python3 python3-pip python3-requests python3-setuptools python3-wheel python3-pyqt5 python3-psutil
+build-essential nasm gcc g++ make cmake qt6-base-dev libqt6core6 libqt6gui6 libqt6widgets6 qtbase5-dev pkg-config libqt5widgets5
