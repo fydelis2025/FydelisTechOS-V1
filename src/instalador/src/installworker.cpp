@@ -1,5 +1,4 @@
 #include "installworker.h"
-
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
@@ -41,7 +40,7 @@ void InstallWorker::setSkipUpdate(bool skip) { m_skipUpdate = skip; }
 void InstallWorker::setVerbose(bool verbose) { m_verbose = verbose; }
 void InstallWorker::setDryRun(bool dryRun) { m_dryRun = dryRun; }
 
-// ─── Cancelamento Seguro ────────────────────────────────────────────────────
+// ─── Cancelamento Seguro ────────────────────────────────────────────────----
 
 void InstallWorker::cancel() {
     m_cancelled = true;
@@ -101,7 +100,7 @@ void InstallWorker::run() {
         return;
     }
 
-    // ─── Etapa 1: Particionamento e Cópia Real (0% → 5%) ───────────
+    // ─── Etapa 1: Particionamento e Cópia Real (0% → 15%) ───────────
     if (!m_installDevice.isEmpty() && (m_eraseDisk || m_dualBoot)) {
         emitProgress(0, "Preparando partições e gravando sistema...");
         emitLog("📀 Configurando partições e copiando sistema...\n");
@@ -113,14 +112,14 @@ void InstallWorker::run() {
         emitProgress(PROGRESS_PARTITION, "Particionamento não necessário");
     }
 
-    // ─── Etapa 2: Dependências do sistema (5% → 10%) ──────────────
+    // ─── Etapa 2: Dependências do sistema (15% → 20%) ──────────────
     emitProgress(PROGRESS_PARTITION, "Instalando dependências do sistema...");
     if (!stepSystemDeps()) {
         emit finished(false, "Falha ao instalar dependências do sistema.");
         return;
     }
 
-    // ─── Etapa 3: Atualizar lista de pacotes (10% → 15%) ──────────
+    // ─── Etapa 3: Atualizar lista de pacotes (20% → 25%) ──────────
     if (!m_skipUpdate) {
         emitProgress(PROGRESS_DEPS, "Atualizando lista de pacotes...");
         if (!stepUpdatePackageList()) {
@@ -130,7 +129,7 @@ void InstallWorker::run() {
         emitProgress(PROGRESS_UPDATE, "Update pulado (--skip-update)");
     }
 
-    // ─── Etapa 4: Instalar pacotes (15% → 85%) ────────────────────
+    // ─── Etapa 4: Instalar pacotes (25% → 85%) ────────────────────
     if (!stepInstallPackages()) {
         emit finished(false, "Instalação interrompida.");
         return;
@@ -184,6 +183,7 @@ QString InstallWorker::getPartitionName(const QString &device, int partitionNumb
 
 bool InstallWorker::stepPartitioning() {
     if (m_eraseDisk) {
+        emitProgress(2, "Limpando disco e criando tabela GPT...");
         emitLog("💾 Apagando disco " + m_installDevice + " e criando partições...\n");
 
         runBash(QString("umount %1* 2>/dev/null || true").arg(m_installDevice));
@@ -194,8 +194,14 @@ bool InstallWorker::stepPartitioning() {
             emitLog("❌ Falha ao criar tabela GPT: " + labelRes, true);
             return false;
         }
+
+        // 🛠️ CORREÇÃO: Força o kernel a atualizar a tabela de partições imediatamente
+        runBash(QString("partprobe %1 2>/dev/null || true").arg(m_installDevice));
+        QThread::msleep(800); // Aguarda o kernel processar o novo tamanho/tabela
+
         emitLog("   Tabela GPT criada com sucesso.\n");
 
+        emitProgress(5, "Criando partição EFI (512 MB)...");
         // Cria partição EFI (512 MB)
         QString efiRes = runBash(QString("parted %1 mkpart primary fat32 0%% 512MiB -s 2>&1").arg(m_installDevice));
         if (efiRes.contains("Error") || efiRes.contains("error")) {
@@ -207,6 +213,7 @@ bool InstallWorker::stepPartitioning() {
         runBash(QString("mkfs.vfat -F32 %1 2>&1").arg(efiPart));
         emitLog("   Partição EFI formatada (FAT32).\n");
 
+        emitProgress(8, "Criando partição Root (EXT4)...");
         // Cria partição root (restante)
         QString rootRes = runBash(QString("parted %1 mkpart primary ext4 512MiB 100%% -s 2>&1").arg(m_installDevice));
         if (rootRes.contains("Error") || rootRes.contains("error")) {
@@ -218,32 +225,37 @@ bool InstallWorker::stepPartitioning() {
         runBash(QString("mkfs.ext4 -F %1 2>&1").arg(rootPart));
         emitLog("   Partição Root formatada (EXT4).\n");
 
+        emitProgress(10, "Montando partições em /mnt...");
         // Monta o sistema de arquivos em /mnt
         runBash(QString("mount %1 /mnt 2>&1").arg(rootPart));
         runBash("mkdir -p /mnt/boot/efi");
         runBash(QString("mount %1 /mnt/boot/efi 2>&1").arg(efiPart));
         emitLog("   Partições montadas em /mnt.\n");
 
+        emitProgress(12, "Copiando arquivos do sistema operacional para o disco...");
         // Cópia real dos arquivos do sistema operacional rodando (LiveCD) para o disco
-        emitLog("   Copiando arquivos do sistema operacional para o disco...\n");
         QString copyRes = runBash(
             "rsync -aAX / /mnt/ "
             "--exclude=/dev/* --exclude=/proc/* --exclude=/sys/* "
             "--exclude=/tmp/* --exclude=/run/* --exclude=/mnt/* "
             "--exclude=/media/* --exclude=/lost+found 2>&1"
         );
-        if (copyRes.contains("error") || copyRes.contains("Error")) {
-            emitLog("⚠️ Aviso na sincronização rsync: " + copyRes, true);
+        
+        // 🛠️ CORREÇÃO: Validação estrita do rsync para evitar sucesso falso
+        if (copyRes.contains("error: ") || copyRes.contains("Error: ") || copyRes.contains("rsync error:")) {
+            emitLog("❌ Falha crítica na cópia dos arquivos (rsync): " + copyRes, true);
+            return false;
         } else {
             emitLog("   Arquivos do sistema copiados com sucesso.\n");
         }
 
+        emitProgress(14, "Instalando o GRUB no disco...");
         // Configuração do Bootloader (GRUB)
-        emitLog("   Instalando o GRUB no disco...\n");
         runBash(QString("chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=FydelisTechOS --recheck 2>&1 || chroot /mnt grub-install %1 2>&1").arg(m_installDevice));
         runBash("chroot /mnt update-grub 2>&1");
         emitLog("   GRUB configurado com sucesso.\n");
 
+        emitProgress(15, "Disco particionado e configurado com sucesso.");
         emitLog("✅ Disco particionado, gravado e configurado com sucesso.\n");
         return true;
     }
@@ -424,11 +436,35 @@ QString InstallWorker::runCommand(const QString &cmd, const QStringList &args) {
     return "OK (simulado no Windows)";
 #else
     if (m_cancelled) return "";
+    
     QProcess proc;
     proc.setProcessChannelMode(QProcess::MergedChannels);
     proc.start(cmd, args);
-    proc.waitForFinished(300000);
-    return QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
+    
+    QString fullOutput;
+    while (proc.state() == QProcess::Running) {
+        if (m_cancelled) {
+            proc.kill();
+            proc.waitForFinished();
+            return "";
+        }
+        proc.waitForReadyRead(100);
+        QCoreApplication::processEvents();
+        
+        QByteArray ba = proc.readAll();
+        if (!ba.isEmpty()) {
+            QString chunk = QString::fromUtf8(ba);
+            fullOutput += chunk;
+            foreach(const QString &line, chunk.split('\n')) {
+                if (!line.trimmed().isEmpty()) {
+                    emitLog("    " + line.trimmed() + "\n");
+                }
+            }
+        }
+    }
+    
+    proc.waitForFinished();
+    return fullOutput.trimmed();
 #endif
 }
 
