@@ -1,5 +1,5 @@
-name: Build FydelisTechOS V1
-run-name: Construindo ISO FydelisTechOS
+name: Build FydelisTechOS Server
+run-name: Construindo ISO FydelisTechOS Server
 on:
   push:
     branches: [ main ]
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-iso:
-    name: Gerar Imagem ISO
+    name: Gerar Imagem ISO Server
     runs-on: ubuntu-24.04
     env:
       DEBIAN_FRONTEND: noninteractive
@@ -51,41 +51,26 @@ jobs:
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
             debian-archive-keyring curl findutils coreutils cpio
 
-          echo "=== 2. Preparar lista de pacotes ==="
+          echo "=== 2. Preparar lista de pacotes para Servidor ==="
           mkdir -p src/pacotes/
           cat > src/pacotes/lista_completa.txt << 'EOF'
-          # Sistema base e Inicialização Live USB
+          # Sistema base e Inicialização Live / Instalação Server
           live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
           
-          # Ferramentas básicas
-          nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
+          # Ferramentas essenciais de administração e rede
+          nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils screen tmux
           
-          # Escritório e Multimídia
-          libreoffice libreoffice-l10n-pt-br evince gpicview vlc
+          # Conectividade e Serviços de Rede Avançados
+          network-manager wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2 iptables ufw fail2ban
           
-          # Áudio
-          pipewire pipewire-pulse wireplumber alsa-utils pavucontrol
+          # Discos, Armazenamento e Gerenciamento de Servidor
+          parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 mdadm cifs-utils nfs-common
           
-          # Bluetooth
-          bluetooth bluez bluez-tools blueman
-          
-          # Rede e Internet
-          firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
-          
-          # Discos e armazenamento
-          gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
-          
-          # Segurança (Pentest)
-          wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
-          
-          # Sistema e configuração
-          gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl plymouth plymouth-themes
-          
-          # Python e IA
+          # Python e Automação (Sem IA pesada)
           python3 python3-pip python3-requests
           
-          # Compilação
-          build-essential nasm gcc g++ make
+          # Compilação e Desenvolvimento Básicos
+          build-essential nasm gcc g++ make git
           EOF
 
           echo "=== 3. Configurar Live Build ==="
@@ -99,9 +84,9 @@ jobs:
             --mirror-chroot-security "${SEC_MIRROR}" \
             --mirror-binary "${MIRROR}" \
             --mirror-binary-security "${SEC_MIRROR}" \
-            --iso-application "FydelisTechOS V1" \
+            --iso-application "FydelisTechOS Server" \
             --iso-publisher "FydelisTech" \
-            --iso-volume "FYDELIS_V1" \
+            --iso-volume "FYDELIS_SRV" \
             --binary-images iso-hybrid \
             --debian-installer netinst \
             --cache-packages false \
@@ -115,9 +100,8 @@ jobs:
           mkdir -p config/includes.chroot/usr/local/bin/
           mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
           mkdir -p config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-          mkdir -p config/includes.chroot/usr/share/icons/fydel/
           mkdir -p config/includes.chroot/etc/systemd/system/
-          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
+          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos-server/
           mkdir -p config/includes.chroot/opt/fydel/telas/
           mkdir -p config/includes.chroot/opt/fydel/iso/
           
@@ -130,12 +114,11 @@ jobs:
           fi
           
           # Copiar scripts internos de utilitários e instalação
-          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
           [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
           [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
           [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
           
-          # Acoplando o tema visual do GRUB
+          # Acoplando o tema visual do GRUB (Modo Server - focado em texto/splash simples)
           [ -f "./theme.txt" ] && cp ./theme.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
           [ -f "./colors.txt" ] && cp ./colors.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
           
@@ -148,12 +131,6 @@ jobs:
             
             cp "$GRUB_ASSETS/splash.png" config/bootloaders/grub/splash.png
             cp "$GRUB_ASSETS/splash.png" config/includes.binary/boot/grub/splash.png
-            mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
-            cp "$GRUB_ASSETS/splash.png" config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
-          fi
-          
-          if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
-            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
           fi
           
           if [ -d "src/sistema/servicos_systemd" ] && [ "$(ls -A src/sistema/servicos_systemd 2>/dev/null)" ]; then
@@ -165,7 +142,7 @@ jobs:
           fi
           
           if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
-            cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
+            cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos-server/
           fi
           
           chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
@@ -180,56 +157,12 @@ jobs:
           # Sanitizar os scripts copiados dentro do ambiente chroot também
           find /usr/local/bin/ -type f -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 
-          echo "=== [Hook] Instalando o Ollama ==="
-          curl -fsSL https://ollama.com/install.sh | sh || true
-
-          echo "=== [Hook] Inicializando o Ollama para baixar os modelos de fábrica ==="
-          ollama serve &
-          SLEEP_PID=$!
-          sleep 10
-
-          echo "=== [Hook] Baixando Modelo Leve (Gemma 2B) ==="
-          ollama pull gemma:2b-instruct-q4_K_M || true
-
-          echo "=== [Hook] Baixando Modelo Avançado (Llama 3.2 3B) ==="
-          ollama pull llama3.2:3b || true
-
-          kill $SLEEP_PID || true
-          sleep 5
-          
-          echo "=== [Hook] Removendo pacotes visuais padrões ==="
+          echo "=== [Hook] Removendo pacotes visuais desnecessários para Server ==="
           apt-get purge -y desktop-base || true
 
-          echo "=== [Hook] Configurando Plymouth ==="
-          if [ -d /usr/share/plymouth/themes/fydel ]; then
-          cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
-          [Plymouth Theme]
-          Name=FydelisTechOS Splash
-          Description=Custom splash screen for FydelisTechOS
-          ModuleName=script
-          
-          [script]
-          ImageDir=/usr/share/plymouth/themes/fydel
-          ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
-          PLY
-          
-          cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
-          wallpaper_image = Image("background.png");
-          screen_width = Window.GetWidth();
-          screen_height = Window.GetHeight();
-          resized_image = wallpaper_image.Scale(screen_width, screen_height);
-          wallpaper_sprite = Sprite(resized_image);
-          wallpaper_sprite.SetZ(-10);
-          SCR
-
-          plymouth-set-default-theme fydel || true
-          fi
-
-          echo "=== [Hook] Configurando GRUB com parâmetros universais ==="
+          echo "=== [Hook] Configurando GRUB para modo Server (CLI otimizada) ==="
           if [ -f /etc/default/grub ]; then
-            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nomodeset video=efifb:off"/' /etc/default/grub
-            sed -i 's/#GRUB_GFXMODE=.*/GRUB_GFXMODE=1024x768,auto/' /etc/default/grub
-            echo 'GRUB_THEME="/boot/grub/themes/grub-theme-fydel/theme.txt"' >> /etc/default/grub
+            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet console=tty0 console=ttyS0,115200n8"/' /etc/default/grub
             update-grub || true
           fi
 
@@ -239,13 +172,11 @@ jobs:
             make clean && make && make install
           fi
 
-          chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
           chmod +x /usr/local/bin/gerenciador_pacotes.sh 2>/dev/null || true
           chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
           chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
 
           ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
-          ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
           ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
 
           if [ -f /usr/local/bin/usuarios_permissoes.sh ]; then
@@ -258,7 +189,7 @@ jobs:
           fi
 
           echo -e "\nif [ -f /opt/fydel/telas/tela_boas_vindas.txt ]; then cat /opt/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
-          echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
+          echo -e "echo -e '\\n\\033[1;35mPara instalar no disco do servidor, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
           EOF
           chmod +x config/hooks/normal/0500-build-system.hook.chroot
 
@@ -277,39 +208,37 @@ jobs:
             -v /lib/modules:/lib/modules \
             debian:bookworm-slim /bin/bash -c "./run_build.sh"
 
-      - name: 📦 Renomear ISO final
+      - name: 📦 Renomear ISO final para Server
         run: |
           if [ -f live-image-amd64.hybrid.iso ]; then
-            mv live-image-amd64.hybrid.iso FydelisTechOS-V1.0.iso
+            mv live-image-amd64.hybrid.iso FydelisTechOS-Server-V1.0.iso
           elif [ -f binary.iso ]; then
-            mv binary.iso FydelisTechOS-V1.0.iso
+            mv binary.iso FydelisTechOS-Server-V1.0.iso
           else
             echo "❌ ISO não encontrada."
             exit 1
           fi
 
-      - name: 🌐 Upload da ISO para Servidores Oficiais de Upload (Bypass de RAM)
+      - name: 🌐 Upload da ISO para Servidores Oficiais de Upload
         run: |
           echo "=========================================================="
           echo "=== Tentando Rota 1: Litterbox (Catbox - Até 10GB) ==="
           echo "=========================================================="
-          # Litterbox aceita até 10GB usando envio de formulário padrão. Guardado por 72 horas.
-          LINK_LITTERBOX=$(curl -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@FydelisTechOS-V1.0.iso" https://litterbox.catbox.moe) || true
+          LINK_LITTERBOX=$(curl -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@FydelisTechOS-Server-V1.0.iso" https://litterbox.catbox.moe) || true
           echo "=========================================================="
           echo "🚀 LINK LITTERBOX: $LINK_LITTERBOX"
           echo "=========================================================="
 
           echo -e "\n=========================================================="
-          echo "=== Tentando Rota 2: BashUpload (Correção de Parâmetro) ==="
+          echo "=== Tentando Rota 2: BashUpload ==="
           echo "=========================================================="
-          # Usando o endpoint correto do BashUpload para não dar Out of Memory
-          curl -T FydelisTechOS-V1.0.iso https://bashupload.com/FydelisTechOS-V1.0.iso || true
+          curl -T FydelisTechOS-Server-V1.0.iso https://bashupload.com/FydelisTechOS-Server-V1.0.iso || true
           echo "=========================================================="
 
       - name: 💾 Salvar no GitHub (Fallback)
         uses: actions/upload-artifact@v4
         with:
-          name: FydelisTechOS-V1.0
-          path: FydelisTechOS-V1.0.iso
+          name: FydelisTechOS-Server-V1.0
+          path: FydelisTechOS-Server-V1.0.iso
           retention-days: 1
-        continue-on-error: true
+          continue-on-error: true
