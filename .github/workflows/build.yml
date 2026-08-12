@@ -179,6 +179,11 @@ jobs:
           ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
           ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
 
+          # CORREÇÃO: Garantir que o grupo bluetooth existe antes de chamar o script de permissões
+          if ! getent group bluetooth > /dev/null 2>&1; then
+              groupadd --system bluetooth || true
+          fi
+
           if [ -f /usr/local/bin/usuarios_permissoes.sh ]; then
             bash /usr/local/bin/usuarios_permissoes.sh
           fi
