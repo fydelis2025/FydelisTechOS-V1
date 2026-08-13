@@ -138,4 +138,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FydelisTechOS-Server-ISO
-          path: FydelisTechOS-Server.iso
+          path: FydelisTechOS-Server-ISO.iso
+          retention-days: 1
