@@ -117,7 +117,25 @@ jobs:
           chmod +x run_build.sh
           sudo docker run --privileged --rm -v "$GITHUB_WORKSPACE:/workspace" -w /workspace debian:bookworm-slim /bin/bash -c "./run_build.sh"
 
-      - name: 📦 Renomear e Upload
+      - name: 📦 Ajustar permissões e Salvar Artefato ISO
         run: |
-          mv live-image-amd64.hybrid.iso FydelisTechOS-Server.iso
-          curl -F "reqtype=fileupload" -F "fileToUpload=@FydelisTechOS-Server.iso" https://litterbox.catbox.moe
+          # Corrige o dono do arquivo ISO que veio do Docker (root -> usuário normal do runner)
+          sudo chown -R $USER:$USER .
+          
+          # Procura onde o live-build salvou a ISO e renomeia
+          if [ -f live-image-amd64.hybrid.iso ]; then
+            mv live-image-amd64.hybrid.iso FydelisTechOS-Server.iso
+          elif [ -f *.iso ]; then
+            mv *.iso FydelisTechOS-Server.iso
+          else
+            echo "Erro: Arquivo ISO não encontrado!"
+            exit 1
+          fi
+          
+          ls -lh FydelisTechOS-Server.iso
+
+      - name: 📤 Upload da ISO para os Artefatos do GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: FydelisTechOS-Server-ISO
+          path: FydelisTechOS-Server.iso
