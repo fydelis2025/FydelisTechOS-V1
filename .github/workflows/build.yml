@@ -1,5 +1,5 @@
-name: Build FydelisTechOS-Server V1
-run-name: Construindo ISO FydelisTechOS
+name: Build FydelisTechOS V1 (Servidor)
+run-name: Construindo ISO FydelisTechOS (Modo Servidor)
 on:
   push:
     branches: [ main ]
@@ -27,15 +27,10 @@ jobs:
           sudo apt-get clean
           df -h
 
-      - name: 🚀 Executar Build dentro do Container Debian com Espaço do Host
+      - name: 🚀 Executar Build
         run: |
-          # --- SANITIZAÇÃO AUTOMÁTICA DE CRLF PARA LF ---
-          echo "=== Sanitizando quebras de linha dos scripts carregados (CRLF -> LF) ==="
           find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
-          find . -type f -name "*.txt" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
-          find . -type f -name "*.cpp" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
-          find . -type f -name "*.asm" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
-
+          
           cat << 'CONTAINER_SCRIPT' > run_build.sh
           #!/bin/bash
           set -e
@@ -45,47 +40,27 @@ jobs:
           export MIRROR=http://deb.debian.org/debian/
           export SEC_MIRROR=http://deb.debian.org/debian-security/
 
-          echo "=== 1. Instalar dependências nativas do Debian ==="
+          echo "=== 1. Instalar dependências nativas ==="
           apt-get update
           apt-get install -y --no-install-recommends \
             live-build debootstrap xorriso rsync wget ca-certificates gnupg2 \
             debian-archive-keyring curl findutils coreutils cpio
 
-          echo "=== 2. Preparar lista de pacotes ==="
+          echo "=== 2. Preparar lista de pacotes (Foco em Servidor) ==="
           mkdir -p src/pacotes/
           cat > src/pacotes/lista_completa.txt << 'EOF'
-          # Sistema base e Inicialização Live USB
-          live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash diffutils e2fsprogs findutils grep gzip hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
+          # Sistema base
+          live-boot live-config live-config-systemd base-files base-passwd bash coreutils dash e2fsprogs grep hostname init-system-helpers libc6 login lsb-base mawk mount ncurses-base ncurses-bin perl-base sed tar util-linux debian-archive-keyring
           
-          # Ferramentas básicas
-          nano vim htop ncdu lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip bzip2 xz-utils
+          # Ferramentas de Rede e Administração
+          nano vim htop lsof net-tools psmisc man-db bash-completion sudo wget curl rsync unzip xz-utils
+          openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
           
-          # Escritório e Multimídia
-          libreoffice libreoffice-l10n-pt-br evince gpicview vlc
+          # Discos e Armazenamento
+          gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2
           
-          # Áudio
-          pipewire pipewire-pulse wireplumber alsa-utils pavucontrol
-          
-          # Bluetooth
-          bluetooth bluez bluez-tools blueman
-          
-          # Rede e Internet
-          firefox-esr network-manager network-manager-gnome wireless-tools wpasupplicant openssh-client openssh-server netcat-openbsd nmap traceroute mtr iproute2
-          
-          # Discos e armazenamento
-          gparted parted dosfstools ntfs-3g exfatprogs btrfs-progs lvm2 gnome-disk-utility
-          
-          # Segurança (Pentest)
-          wireshark tshark tcpdump hydra john hashcat aircrack-ng reaver sqlmap nikto binwalk foremost testdisk chkrootkit rkhunter
-          
-          # Sistema e configuração
-          gnome-control-center system-config-printer hardinfo lm-sensors udisks2 openssl plymouth plymouth-themes
-          
-          # Python e Utilitários
-          python3 python3-pip python3-requests
-          
-          # Compilação
-          build-essential nasm gcc g++ make
+          # Compilação e Sistema
+          build-essential nasm gcc g++ make systemd-sysv
           EOF
 
           echo "=== 3. Configurar Live Build ==="
@@ -95,202 +70,54 @@ jobs:
             --architectures "${ARCH}" \
             --archive-areas "main contrib non-free non-free-firmware" \
             --mirror-bootstrap "${MIRROR}" \
-            --mirror-chroot "${MIRROR}" \
-            --mirror-chroot-security "${SEC_MIRROR}" \
-            --mirror-binary "${MIRROR}" \
-            --mirror-binary-security "${SEC_MIRROR}" \
-            --iso-application "FydelisTechOS V1" \
-            --iso-publisher "FydelisTech" \
-            --iso-volume "FYDELIS_V1" \
             --binary-images iso-hybrid \
-            --debian-installer netinst \
-            --cache-packages false \
-            --apt-source-archives false
+            --cache-packages false
 
-          echo "=== 4. Estruturar Diretórios do Chroot e Binary ==="
+          echo "=== 4. Estruturar Diretórios ==="
           mkdir -p config/package-lists/
           cp src/pacotes/lista_completa.txt config/package-lists/fydelis.list.chroot
 
-          # Criar pastas para receber os binários, scripts e assets visuais
           mkdir -p config/includes.chroot/usr/local/bin/
           mkdir -p config/includes.chroot/usr/local/src/fydel-terminal/
-          mkdir -p config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-          mkdir -p config/includes.chroot/usr/share/icons/fydel/
+          
+          # Copiar fontes e scripts mantidos
+          [ -d "src/terminal" ] && cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
+          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/
+          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/
+          
           mkdir -p config/includes.chroot/etc/systemd/system/
-          mkdir -p config/includes.chroot/usr/share/doc/fydelistechos/
-          mkdir -p config/includes.chroot/opt/fydel/telas/
-          mkdir -p config/includes.chroot/opt/fydel/iso/
-          
-          mkdir -p config/bootloaders/grub/
-          mkdir -p config/includes.binary/boot/grub/
-          
-          # Copiar fontes do terminal C++/Assembly
-          if [ -d "src/terminal" ] && [ "$(ls -A src/terminal 2>/dev/null)" ]; then
-            cp -r src/terminal/* config/includes.chroot/usr/local/src/fydel-terminal/
-          fi
-          
-          # Copiar scripts internos de utilitários e instalação
-          [ -f "src/sistema/fydel_ai.py" ] && cp src/sistema/fydel_ai.py config/includes.chroot/usr/local/bin/ || echo "f_ai missing"
-          [ -f "src/sistema/gerenciador_pacotes.sh" ] && cp src/sistema/gerenciador_pacotes.sh config/includes.chroot/usr/local/bin/ || echo "g_pkg missing"
-          [ -f "src/sistema/usuarios_permissoes.sh" ] && cp src/sistema/usuarios_permissoes.sh config/includes.chroot/usr/local/bin/ || echo "u_perm missing"
-          [ -f "src/instalador/fydel-install.sh" ] && cp src/instalador/fydel-install.sh config/includes.chroot/usr/local/bin/ || echo "inst missing"
-          
-          # Acoplando o tema visual do GRUB
-          [ -f "./theme.txt" ] && cp ./theme.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-          [ -f "./colors.txt" ] && cp ./colors.txt config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-          
-          GRUB_ASSETS="src/sistema/grub/grub-theme-fydel"
-          if [ -d "$GRUB_ASSETS" ]; then
-            [ -f "$GRUB_ASSETS/background.png" ] && cp "$GRUB_ASSETS/background.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-            [ -f "$GRUB_ASSETS/logo.png" ] && cp "$GRUB_ASSETS/logo.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-            [ -f "$GRUB_ASSETS/splash.png" ] && cp "$GRUB_ASSETS/splash.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-            [ -f "$GRUB_ASSETS/grub.png" ] && cp "$GRUB_ASSETS/grub.png" config/includes.chroot/boot/grub/themes/grub-theme-fydel/
-            
-            cp "$GRUB_ASSETS/splash.png" config/bootloaders/grub/splash.png
-            cp "$GRUB_ASSETS/splash.png" config/includes.binary/boot/grub/splash.png
-            mkdir -p config/includes.chroot/usr/share/plymouth/themes/fydel/
-            cp "$GRUB_ASSETS/splash.png" config/includes.chroot/usr/share/plymouth/themes/fydel/background.png
-          fi
-          
-          if [ -d "src/sistema/icones" ] && [ "$(ls -A src/sistema/icones 2>/dev/null)" ]; then
-            cp -r src/sistema/icones/* config/includes.chroot/usr/share/icons/fydel/
-          fi
-          
-          if [ -d "src/sistema/servicos_systemd" ] && [ "$(ls -A src/sistema/servicos_systemd 2>/dev/null)" ]; then
-            cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
-          fi
-          
-          if [ -d "src/telas" ] && [ "$(ls -A src/telas 2>/dev/null)" ]; then
-            cp -r src/telas/* config/includes.chroot/opt/fydel/telas/
-          fi
-          
-          if [ -d "src/documentacao" ] && [ "$(ls -A src/documentacao 2>/dev/null)" ]; then
-            cp -r src/documentacao/* config/includes.chroot/usr/share/doc/fydelistechos/
-          fi
-          
-          chmod +x config/includes.chroot/usr/local/bin/*.sh 2>/dev/null || true
-          chmod +x config/includes.chroot/usr/local/bin/*.py 2>/dev/null || true
+          [ -d "src/sistema/servicos_systemd" ] && cp -r src/sistema/servicos_systemd/* config/includes.chroot/etc/systemd/system/
 
           echo "=== 5. Criar Hooks ==="
           mkdir -p config/hooks/normal
           cat << 'EOF' > config/hooks/normal/0500-build-system.hook.chroot
           #!/bin/bash
           set -e
-          
-          # Sanitizar os scripts copiados dentro do ambiente chroot também
-          find /usr/local/bin/ -type f -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
 
-          echo "=== [Hook] Removendo pacotes visuais padrões ==="
-          apt-get purge -y desktop-base || true
-
-          echo "=== [Hook] Configurando Plymouth ==="
-          if [ -d /usr/share/plymouth/themes/fydel ]; then
-          cat << 'PLY' > /usr/share/plymouth/themes/fydel/fydel.plymouth
-          [Plymouth Theme]
-          Name=FydelisTechOS Splash
-          Description=Custom splash screen for FydelisTechOS
-          ModuleName=script
-          
-          [script]
-          ImageDir=/usr/share/plymouth/themes/fydel
-          ScriptFile=/usr/share/plymouth/themes/fydel/fydel.script
-          PLY
-          
-          cat << 'SCR' > /usr/share/plymouth/themes/fydel/fydel.script
-          wallpaper_image = Image("background.png");
-          screen_width = Window.GetWidth();
-          screen_height = Window.GetHeight();
-          resized_image = wallpaper_image.Scale(screen_width, screen_height);
-          wallpaper_sprite = Sprite(resized_image);
-          wallpaper_sprite.SetZ(-10);
-          SCR
-
-          plymouth-set-default-theme fydel || true
-          fi
-
-          echo "=== [Hook] Configurando GRUB com parâmetros universais ==="
-          if [ -f /etc/default/grub ]; then
-            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nomodeset video=efifb:off"/' /etc/default/grub
-            sed -i 's/#GRUB_GFXMODE=.*/GRUB_GFXMODE=1024x768,auto/' /etc/default/grub
-            echo 'GRUB_THEME="/boot/grub/themes/grub-theme-fydel/theme.txt"' >> /etc/default/grub
-            update-grub || true
-          fi
-
-          echo "=== [Hook] Compilando Terminal Híbrido Fydel ==="
+          # Compilar Terminal Fydel
           if [ -d /usr/local/src/fydel-terminal ]; then
             cd /usr/local/src/fydel-terminal
             make clean && make && make install
           fi
 
-          chmod +x /usr/local/bin/fydel_ai.py 2>/dev/null || true
-          chmod +x /usr/local/bin/gerenciador_pacotes.sh 2>/dev/null || true
-          chmod +x /usr/local/bin/usuarios_permissoes.sh 2>/dev/null || true
-          chmod +x /usr/local/bin/fydel-install.sh 2>/dev/null || true
-
-          ln -sf /usr/local/bin/gerenciador_pacotes.sh /usr/local/bin/fydel-pkg
-          ln -sf /usr/local/bin/fydel_ai.py /usr/local/bin/fydel-ai
-          ln -sf /usr/local/bin/fydel-install.sh /usr/local/bin/fydel-install
-
-          if [ -f /usr/local/bin/usuarios_permissoes.sh ]; then
-            bash /usr/local/bin/usuarios_permissoes.sh
-          fi
-
+          # Permissões
+          chmod +x /usr/local/bin/*.sh || true
+          
+          # Habilitar fydelterm
           if [ -f /etc/systemd/system/fydelterm.service ]; then
-            systemctl daemon-reload
             systemctl enable fydelterm.service
           fi
-
-          echo -e "\nif [ -f /opt/fydel/telas/tela_boas_vindas.txt ]; then cat /opt/fydel/telas/tela_boas_vindas.txt; fi" >> /root/.bashrc
-          echo -e "echo -e '\\n\\033[1;35mPara instalar no disco rígido, digite: \\033[1;32mfydel-install\\033[0m\\n'" >> /root/.bashrc
           EOF
           chmod +x config/hooks/normal/0500-build-system.hook.chroot
 
           echo "=== 6. Rodar o lb build ==="
           lb build --verbose 2>&1
-          echo "Build finalizado com sucesso dentro do container."
           CONTAINER_SCRIPT
 
           chmod +x run_build.sh
+          sudo docker run --privileged --rm -v "$GITHUB_WORKSPACE:/workspace" -w /workspace debian:bookworm-slim /bin/bash -c "./run_build.sh"
 
-          sudo docker run --privileged --rm \
-            -v "$GITHUB_WORKSPACE:/workspace" \
-            -w /workspace \
-            -v /dev:/dev \
-            -v /dev/pts:/dev/pts \
-            -v /lib/modules:/lib/modules \
-            debian:bookworm-slim /bin/bash -c "./run_build.sh"
-
-      - name: 📦 Renomear ISO final
+      - name: 📦 Renomear e Upload
         run: |
-          if [ -f live-image-amd64.hybrid.iso ]; then
-            mv live-image-amd64.hybrid.iso FydelisTechOS-V1.0.iso
-          elif [ -f binary.iso ]; then
-            mv binary.iso FydelisTechOS-V1.0.iso
-          else
-            echo "❌ ISO não encontrada."
-            exit 1
-          fi
-
-      - name: 🌐 Upload da ISO para Servidores Oficiais de Upload (Bypass de RAM)
-        run: |
-          echo "=========================================================="
-          echo "=== Tentando Rota 1: Litterbox (Catbox - Até 10GB) ==="
-          echo "=========================================================="
-          LINK_LITTERBOX=$(curl -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@FydelisTechOS-V1.0.iso" https://litterbox.catbox.moe) || true
-          echo "=========================================================="
-          echo "🚀 LINK LITTERBOX: $LINK_LITTERBOX"
-          echo "=========================================================="
-
-          echo -e "\n=========================================================="
-          echo "=== Tentando Rota 2: BashUpload (Correção de Parâmetro) ==="
-          echo "=========================================================="
-          curl -T FydelisTechOS-V1.0.iso https://bashupload.com/FydelisTechOS-V1.0.iso || true
-          echo "=========================================================="
-
-      - name: 💾 Salvar no GitHub (Fallback)
-        uses: actions/upload-artifact@v4
-        with:
-          name: FydelisTechOS-Server.0
-          path: FydelisTechOS-Server.0.iso
-          retention-days: 1
-        continue-on-error: true
+          mv live-image-amd64.hybrid.iso FydelisTechOS-Server.iso
+          curl -F "reqtype=fileupload" -F "fileToUpload=@FydelisTechOS-Server.iso" https://litterbox.catbox.moe
