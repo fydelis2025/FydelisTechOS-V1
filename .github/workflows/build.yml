@@ -1,4 +1,4 @@
-name: Build FydelisTechOS V1
+name: Build FydelisTechOS-Server V1
 run-name: Construindo ISO FydelisTechOS
 on:
   push:
@@ -290,7 +290,7 @@ jobs:
       - name: 💾 Salvar no GitHub (Fallback)
         uses: actions/upload-artifact@v4
         with:
-          name: FydelisTechOS-V1.0
-          path: FydelisTechOS-V1.0.iso
+          name: FydelisTechOS-Server.0
+          path: FydelisTechOS-Server.0.iso
           retention-days: 1
         continue-on-error: true
