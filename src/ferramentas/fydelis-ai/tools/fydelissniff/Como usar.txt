@@ -1,0 +1,14 @@
+# Captura básica com texto na tela (50 pacotes)
+sudo ./fydelissniff.pl -i eth0 --texto -c 50
+
+# Captura silenciosa salvando em pcap com log
+sudo ./fydelissniff.pl -i wlan0 -o captura.pcap -q -L /var/log/sniff.log
+
+# Captura com timeout de 30s, filtro HTTP, verbose
+sudo ./fydelissniff.pl -i eth0 -t 30 -f "port 80" -o http.pcap -v
+
+# Captura PCAPNG sem modo promíscuo
+sudo ./fydelissniff.pl -i eth0 --pcapng --no-promisc -o evidencia.pcapng
+
+# Máximo de detalhes
+sudo ./fydelissniff.pl -i eth0 --texto -vv -f "not arp"

@@ -1,0 +1,14 @@
+# Análise básica com wordlist rockyou
+sudo ./fydelisaudit.pl -l senhas.txt -w /usr/share/wordlists/rockyou.txt
+
+# Relatório completo exportado
+sudo ./fydelisaudit.pl -l senhas.txt -w rockyou.txt -o relatorio.txt --full
+
+# Apenas as 10 piores, exportar JSON
+sudo ./fydelisaudit.pl -l senhas.txt --top 10 --json resultados.json
+
+# Benchmark com arquivo grande
+sudo ./fydelisaudit.pl -l milhao_senhas.txt -w rockyou.txt -b -q --csv dados.csv
+
+# Filtro por tamanho mínimo
+sudo ./fydelisaudit.pl -l senhas.txt --min-length 6 --max-length 20 -o analise.txt

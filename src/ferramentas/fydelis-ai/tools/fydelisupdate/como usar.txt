@@ -1,0 +1,24 @@
+# 1. INICIALIZAÇÃO (primeira vez)
+sudo ./fydelisupdate.pl --init --set-user fydelistechos
+
+# 2. VERIFICAR ATUALIZAÇÕES
+sudo ./fydelisupdate.pl --check
+
+# 3. ATUALIZAR TUDO
+sudo ./fydelisupdate.pl
+
+# 4. ATUALIZAR APENAS UMA FERRAMENTA
+sudo ./fydelisupdate.pl -t fydelissniff.pl
+
+# 5. SIMULAR ANTES DE ATUALIZAR
+sudo ./fydelisupdate.pl --dry-run
+
+# 6. VERIFICAR INTEGRIDADE DA INSTALAÇÃO
+sudo ./fydelisupdate.pl --verify-installation
+
+# 7. ROLLBACK (se algo der errado)
+sudo ./fydelisupdate.pl --list-backups
+sudo ./fydelisupdate.pl --rollback pre_update_20260721_143022
+
+# 8. EXPORTAR RELATÓRIO DA INSTALAÇÃO
+sudo ./fydelisupdate.pl --verify-installation

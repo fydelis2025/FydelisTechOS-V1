@@ -1,0 +1,10 @@
+Comando: nmap -sV -p 80,443 scanme.org
+Executado em: 2026-07-22 10:51:15
+Exit code: 1
+Dura√ß√£o: 0s
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+STDERR:
+'nmap' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.
